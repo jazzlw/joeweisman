@@ -22,7 +22,7 @@ export type GalleryPhoto = {
  *
  * Images are plain <img> pointing at Cloudflare Images, never next/image. That
  * optimizer runs sharp over the file, and these come from strangers — the
- * security boundary in PLAN.md §12.
+ * security boundary in ARCHITECTURE.md → "Security boundaries".
  */
 /**
  * Show the year only when the caption doesn't already say it.

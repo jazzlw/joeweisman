@@ -2,7 +2,7 @@ import localFont from "next/font/local";
 
 // Committed .woff2 files rather than next/font/google. Both self-host, but the
 // Google loader fetches at build time — a rebuild in year three can fail if the
-// API changes or a face is withdrawn. See PLAN.md §11.
+// API changes or a face is withdrawn. See ARCHITECTURE.md → "Design system".
 
 export const bodySerif = localFont({
   variable: "--font-body",

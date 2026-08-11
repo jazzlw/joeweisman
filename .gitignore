@@ -45,3 +45,6 @@ next-env.d.ts
 
 # ...but the template must be committed
 !.env.example
+
+# From Luke repo
+historic/jazz_email_instructions_to_luke.md

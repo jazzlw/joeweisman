@@ -7,17 +7,23 @@ gallery for things he made or owned, a guestbook, his own recipes, and a way to
 collect email addresses. Built to be cheap, boring, and durable — it should still
 be standing in ten years with nobody tending it.
 
-`PLAN.md` is the design document: what was chosen, what was rejected, and why.
-Read it before making a structural change. This file is how to run and deploy the thing.
+Important documents:
+
+* `ARCHITECTURE.md` -- describes what the site is (the stack, data model, security
+  boundaries, design system). 
+* `PLAN.md` -- covers what's still ahead to do.
+* `history/` -- Some files that describe why past decisions were made the way they were, including what was tried and rejected.
+* `FORKED.md` -- Instructions for making a new site for a different person by forking (copying) this site, setting up all the components, and configuring it.
+* This file -- Technical notes on how to update, run, and deploy the site.
 
 ---
 
 ## ⚠️ Pushing to `main` publishes the site
 
-There is no separate deploy step and no staging gate.
+Once the site is configured, if you "push" changes to the main branch of the project on GitHub, GitHub will automatically update the site. There is no separate deploy step and no staging gate.
 
 ```
-git push origin main   →   Vercel builds   →   live on joeweisman.org  (~1 min)
+git push origin main   →   Vercel builds   →  site live on joeweisman.org  (~1 min)
 ```
 
 **If you are not ready for the world to see it, work on a branch.** Every branch and
@@ -39,10 +45,92 @@ one → *Promote to Production*. It takes seconds; you don't need to revert the 
 
 ---
 
-## Running it locally
+## Moderating the site
 
-Node 22 via [fnm](https://github.com/Schniz/fnm). Node 24 is not used — it requires
-macOS 13.5+, and this was set up on macOS 12.
+Everything happens at **`/admin`** — not linked from anywhere, `noindex`, one password.
+
+**You get an email when something arrives.** A guestbook entry includes the full message,
+so you can decide from your inbox whether it needs removing. Photos send one email per
+submission, however many pictures it contained.
+
+|                               |                                                              |
+| ----------------------------- | ------------------------------------------------------------ |
+| **Guestbook**                 | Entries publish **immediately**. That is deliberate — a tribute that vanishes on submit reads as broken to the person who wrote it. *Hide* removes it from the public page; the row survives and *Restore* brings it back. |
+| **Photos**                    | Held as `pending` and invisible until you *Approve*. *Reject* hides it reversibly. *Delete for good* appears only on already-rejected photos and also removes the file from Cloudflare — the one irreversible action here. |
+| **Photographs vs. artifacts** | Every picture is one or the other, and shows on `/photos` or `/artifacts` accordingly. Submitters choose, and get it wrong both ways — *Move to artifacts* / *Move to photographs* fixes it in one click. |
+| **Resolution**                | Shown under each photograph, admin-only. Flagged *small for print* under 2 MP and *very small* under 0.4 MP — a 5×7 at 300dpi wants about 3 MP, so anything flagged will disappoint if it's enlarged for the service. *size unknown* means it predates this and `npm run dimensions` hasn't been run. |
+| **Archive files**             | Submissions that aren't pictures: recordings, scans, documents. **These appear nowhere on the site** and nothing links to them. Download one to see what it is, then *Keep* or *Not wanted*. What to do with them after that is a hand decision, like the recipes. |
+| **Email list**                | The count is on the dashboard. Export and send by hand from Gmail, BCC (see below). |
+
+Rate limits, if someone reports being blocked: five guestbook entries and forty photos per
+IP per hour.
+
+---
+
+### How to email an update to the "mailing list"
+
+There is no broadcast system, on purpose (`historic/HISTORY.md` §6). Export the addresses from the admin screen, then send
+from `joeweismanmemorial@gmail.com` with everyone in **BCC** — never CC, which would leak
+every mourner's address to every other mourner.
+
+**Two separate ceilings apply, and the smaller one is not the documented limit.**
+
+*Hard:* a consumer Gmail account allows **500 recipients per day**, rolling 24 hours, with
+BCC counting fully. Past that Gmail refuses to send.
+
+*Soft:* deliverability, which bites well below 500. A single message BCC'd to hundreds is
+a bulk-mail signature, and the memorial Gmail is a new account with no sending history —
+the profile most likely to be filtered. Most recipients will be on Gmail too, which
+filters Gmail-to-Gmail bulk hardest. The failure is not a bounce you would notice; it is
+the message landing in spam folders for people who then never hear about the service.
+
+So: **fine up to roughly 200.** Beyond that, either split your mailing list across days or switch sender.
+
+**If the list grows, send through Resend instead of Gmail.** It is already configured with
+`notifications.joeweisman.org` verified and SPF/DKIM passing, so deliverability would be
+genuinely good rather than dependent on a new Gmail's reputation. `historic/HISTORY.md` §6 chose Gmail
+to avoid owning unsubscribe links and compliance machinery, which is still right for a
+small list and worth revisiting for a large one. Free tier is 100/day and 3,000/month.
+
+Either way the addresses live in our own table rather than a third party's form widget,
+which is what keeps that switch cheap.
+
+When someone asks to be removed, set `removed_at` on their row by hand. Honour it.
+
+### Editing the content of the site
+
+All the content is in a set of Markdown files, separate from the code, so changing it doesn't mean touching
+React or any of the technical stuff. The following are some key files you might edit:
+
+| File                  | Appears at                                                   |
+| --------------------- | ------------------------------------------------------------ |
+| `content/obituary.md` | The home page                                                |
+| `content/service.md`  | `/service` — while empty, that page shows a placeholder instead. Its `title:` frontmatter is the page heading. |
+| `content/recipes/`    | `/recipes` — Joe's own text files. See the README in that directory before touching them. |
+
+Plain Markdown: blank line between paragraphs, `*italic*`, `## subheading`. Edit, commit,
+push. That's the whole workflow. You can use a markdown editor such as [Typora](https://typora.io/) to edit these files more easily.
+
+**Special Case:** The recipe files are **not** Markdown and must not be reformatted — they are the original
+files off Joe's machine, rendered exactly as typed.
+
+**Unfilled placeholders.** Anything like `XXXX` shows in amber during development and
+prints a warning in the build log:
+
+```
+⚠  content/obituary.md still contains unfilled placeholders: XXXX
+   These WILL appear on the live site.
+```
+
+It is a warning, not an error — it will not stop a deploy. Watch for it.
+
+# Technical Stuff
+
+The following have technical details of how the site is organized and how to run it.
+
+## Running the site on your own computer
+
+If you want to test the site on your own computer, you can. The site uses Node 22 via [fnm](https://github.com/Schniz/fnm). Node 24 is not used — it requires macOS 13.5+, and this project was set up on macOS 12.
 
 If `node` isn't on your PATH, add this to `~/.bash_profile`:
 
@@ -66,7 +154,7 @@ renders, but the gallery, guestbook, signup and `/admin` all fail, which reads a
 a broken site rather than a missing step. It is safe to re-run: each file in
 `db/` is applied once and skipped afterwards.
 
-Port 3117 rather than the default 3000, because Grafana is usually on 3000 on the
+Port 3117 rather than the default 3000, because Grafana is usually on 3000 on the originally
 development machine. Any free port works.
 
 | Command | What it does |
@@ -88,36 +176,13 @@ before pushing anything touching `src/lib/`.
 
 ---
 
-## Editing the words
 
-Content lives in Markdown, separate from the code, so changing it doesn't mean touching
-React:
-
-| File | Appears at |
-|---|---|
-| `content/obituary.md` | The home page |
-| `content/service.md` | `/service` — while empty, that page shows a placeholder instead. Its `title:` frontmatter is the page heading. |
-| `content/recipes/` | `/recipes` — Joe's own text files. See the README in that directory before touching them. |
-
-Plain Markdown: blank line between paragraphs, `*italic*`, `## subheading`. Edit, commit,
-push. That's the whole workflow.
-
-The recipes are **not** Markdown and must not be reformatted — they are the original
-files off his machine, rendered exactly as typed.
-
-**Unfilled placeholders.** Anything like `XXXX` shows in amber during development and
-prints a warning in the build log:
-
-```
-⚠  content/obituary.md still contains unfilled placeholders: XXXX
-   These WILL appear on the live site.
-```
-
-It is a warning, not an error — it will not stop a deploy. Watch for it.
 
 ---
 
-## What's where
+## What's where (file organization)
+
+The site is roughly "the content" (all in `content/`) and "the technical stuff" (all the other folders). In particular we have the following hierarchy of files:
 
 ```
 content/
@@ -155,13 +220,14 @@ media/                        Working files. GITIGNORED, never deployed.
 Choices worth knowing before you fight them:
 
 - **No Tailwind.** The design is typography-driven and lives in `tokens.css`. One less
-  build dependency, and it survives the eventual freeze to static (`PLAN.md` §3, M6).
+  build dependency, and it survives the eventual freeze to static (`ARCHITECTURE.md` →
+  "Data model").
 - **Fonts are committed as files**, not fetched by `next/font/google`. That loader
   downloads from Google at *build* time, so a rebuild in year three can fail if the API
-  changes. `PLAN.md` §11.
+  changes. `ARCHITECTURE.md` → "Design system".
 - **Visitor photos are served straight from Cloudflare Images, never through
   `next/image`.** Next's optimizer runs `sharp`, and these files come from strangers.
-  This is a security boundary, not a preference. `PLAN.md` §12.
+  This is a security boundary, not a preference. `ARCHITECTURE.md` → "Security boundaries".
 - **Visitor text is never rendered as HTML.** `dangerouslySetInnerHTML` is only ever used
   for our own Markdown in `content/`.
 - **`admin-password.ts` is separate from `admin-auth.ts`** because the latter imports
@@ -169,7 +235,7 @@ Choices worth knowing before you fight them:
 
 ---
 
-## The services
+## The services used
 
 | What | Where | Status |
 |---|---|---|
@@ -177,7 +243,7 @@ Choices worth knowing before you fight them:
 | DNS | Cloudflare | Live. Records are **grey cloud** — see below |
 | Hosting | Vercel | Live, free tier, auto-deploys from GitHub |
 | Database | Neon (Postgres 18, `us-east-1`) | Live, free tier |
-| Photo serving | Cloudflare Images | Live. **Starter Bundle, $5/mo** — see `PLAN.md` §2 |
+| Photo serving | Cloudflare Images | Live. **Starter Bundle, $5/mo** — why the bundle and not pay-as-you-go: `historic/HISTORY.md` §2 |
 | Bot defence | Cloudflare Turnstile | Live on all three forms |
 | `contact@` | Cloudflare Email Routing | Live, forwards to the memorial Gmail |
 | Admin notifications | Resend | Live, from `notifications.joeweisman.org` |
@@ -325,59 +391,7 @@ recovered if lost:
 | `ADMIN_PASSWORD` | The only way into `/admin`. The session cookie is derived from it, so changing it signs everyone out. |
 | `IP_HASH_SALT` | Changing it orphans every existing hash and resets rate limiting. Set once. |
 
----
 
-## Moderating the site
-
-Everything happens at **`/admin`** — not linked from anywhere, `noindex`, one password.
-
-**You get an email when something arrives.** A guestbook entry includes the full message,
-so you can decide from your inbox whether it needs removing. Photos send one email per
-submission, however many pictures it contained.
-
-| | |
-|---|---|
-| **Guestbook** | Entries publish **immediately**. That is deliberate — a tribute that vanishes on submit reads as broken to the person who wrote it. *Hide* removes it from the public page; the row survives and *Restore* brings it back. |
-| **Photos** | Held as `pending` and invisible until you *Approve*. *Reject* hides it reversibly. *Delete for good* appears only on already-rejected photos and also removes the file from Cloudflare — the one irreversible action here. |
-| **Photographs vs. artifacts** | Every picture is one or the other, and shows on `/photos` or `/artifacts` accordingly. Submitters choose, and get it wrong both ways — *Move to artifacts* / *Move to photographs* fixes it in one click. |
-| **Resolution** | Shown under each photograph, admin-only. Flagged *small for print* under 2 MP and *very small* under 0.4 MP — a 5×7 at 300dpi wants about 3 MP, so anything flagged will disappoint if it's enlarged for the service. *size unknown* means it predates this and `npm run dimensions` hasn't been run. |
-| **Archive files** | Submissions that aren't pictures: recordings, scans, documents. **These appear nowhere on the site** and nothing links to them. Download one to see what it is, then *Keep* or *Not wanted*. What to do with them after that is a hand decision, like the recipes. |
-| **Email list** | The count is on the dashboard. Export and send by hand from Gmail, BCC (see below). |
-
-Rate limits, if someone reports being blocked: five guestbook entries and forty photos per
-IP per hour.
-
----
-
-## Sending an update to the list
-
-There is no broadcast system, on purpose (`PLAN.md` §6). Export the addresses, then send
-from `joeweismanmemorial@gmail.com` with everyone in **BCC** — never CC, which would leak
-every mourner's address to every other mourner.
-
-**Two separate ceilings apply, and the smaller one is not the documented limit.**
-
-*Hard:* a consumer Gmail account allows **500 recipients per day**, rolling 24 hours, with
-BCC counting fully. Past that Gmail refuses to send.
-
-*Soft:* deliverability, which bites well below 500. A single message BCC'd to hundreds is
-a bulk-mail signature, and the memorial Gmail is a new account with no sending history —
-the profile most likely to be filtered. Most recipients will be on Gmail too, which
-filters Gmail-to-Gmail bulk hardest. The failure is not a bounce you would notice; it is
-the message landing in spam folders for people who then never hear about the service.
-
-So: **fine up to roughly 200.** Beyond that, either split across days or switch sender.
-
-**If the list grows, send through Resend instead of Gmail.** It is already configured with
-`notifications.joeweisman.org` verified and SPF/DKIM passing, so deliverability would be
-genuinely good rather than dependent on a new Gmail's reputation. `PLAN.md` §6 chose Gmail
-to avoid owning unsubscribe links and compliance machinery, which is still right for a
-small list and worth revisiting for a large one. Free tier is 100/day and 3,000/month.
-
-Either way the addresses live in our own table rather than a third party's form widget,
-which is what keeps that switch cheap.
-
-When someone asks to be removed, set `removed_at` on their row. Honour it.
 
 ---
 
@@ -456,7 +470,7 @@ visitor at `contact@joeweisman.org`. Nothing is silently lost, but nothing arriv
 3. **Nobody noticing it's down.** Hence UptimeRobot — an outage nobody sees for three
    weeks is the real failure mode, not an outage.
 
-### Backups
+## Backups
 
 The written content needs none — it is in git. The photographs do, because they are
 irreplaceable and exist nowhere else.

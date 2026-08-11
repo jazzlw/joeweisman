@@ -8,7 +8,7 @@ export { checkPassword } from "./admin-password";
  *
  * Not an identity system, deliberately. There are two admins and the blast
  * radius is hiding guestbook entries and reading submitter emails. Supabase
- * Auth was cut for exactly this reason (PLAN.md §1).
+ * Auth was cut for exactly this reason (historic/HISTORY.md §1).
  *
  * The password and token logic lives in admin-password.ts, which has no Next
  * imports and is therefore testable outside the framework.

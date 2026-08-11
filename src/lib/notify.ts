@@ -3,8 +3,8 @@
  *
  * One recipient — Jazz — so there is no list, no unsubscribe machinery and no
  * deliverability project. This is the narrow use of Resend described in
- * PLAN.md §2, deliberately separate from the mailing list, which is sent by
- * hand from Gmail.
+ * ARCHITECTURE.md → "Stack", deliberately separate from the mailing list,
+ * which is sent by hand from Gmail.
  *
  * Everything here **fails soft**. A notification that doesn't send must never
  * cost someone their tribute or their photographs: the submission is already

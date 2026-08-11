@@ -37,7 +37,7 @@ export type PendingPhoto = Photo & { email: string | null; status: string };
  * want while photographs are still coming in before the service.
  *
  * Chronological by taken_year is the better arrangement once enough of those
- * are confirmed; see PLAN.md.
+ * are confirmed; see PLAN.md → "Ongoing".
  *
  * Selects only what the public page renders — never email.
  *

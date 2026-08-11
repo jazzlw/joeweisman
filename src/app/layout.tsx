@@ -2,14 +2,11 @@ import type { Metadata } from "next";
 import { bodySerif, displaySerif, mono } from "./fonts";
 import Nav from "./nav";
 import Footer from "./footer";
+import { SITE_NAME, SITE_DESCRIPTION } from "../site.config";
 import "./tokens.css";
 
 /** Unset means no analytics at all, which is the correct default for a fork. */
 const analyticsToken = process.env.NEXT_PUBLIC_CF_ANALYTICS_TOKEN;
-
-const SITE_NAME = "Joe Weisman";
-const DESCRIPTION =
-  "In memory of Joe Weisman, 1944–2026. Curiosity, generosity, justice, and living life to the fullest.";
 
 /**
  * Absolute base for Open Graph URLs.
@@ -39,18 +36,18 @@ export const metadata: Metadata = {
     default: SITE_NAME,
     template: `%s — ${SITE_NAME}`,
   },
-  description: DESCRIPTION,
-  // These sites travel by Facebook share — PLAN.md §3, Milestone 1.
+  description: SITE_DESCRIPTION,
+  // These sites travel by Facebook share — historic/HISTORY.md §3, Milestone 1.
   openGraph: {
     type: "profile",
     siteName: SITE_NAME,
     title: SITE_NAME,
-    description: DESCRIPTION,
+    description: SITE_DESCRIPTION,
     // A dedicated 1200x630 crop. The square portrait was being centre-cropped by
     // Facebook and Twitter, which cut off his hands and the top of his head.
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: SITE_NAME }],
   },
-  twitter: { card: "summary_large_image", title: SITE_NAME, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: SITE_DESCRIPTION },
   robots: { index: true, follow: true },
 };
 

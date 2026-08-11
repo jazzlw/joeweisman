@@ -3,7 +3,8 @@ import { readDoc } from "@/lib/content";
 import portrait from "../../public/portrait-hero.jpg";
 
 // next/image is used only for curated assets we control. Visitor-submitted photos
-// are served straight from Cloudflare Images and never touch sharp here. PLAN.md §12.
+// are served straight from Cloudflare Images and never touch sharp here.
+// See ARCHITECTURE.md → "Security boundaries".
 
 export default function Home() {
   const obituary = readDoc("obituary");
@@ -31,7 +32,8 @@ export default function Home() {
       <hr className="rule" />
 
       {/* Source is ours and lives in the repo, so this HTML is trusted.
-          Visitor-submitted text never renders this way — see PLAN.md §11. */}
+          Visitor-submitted text never renders this way — see ARCHITECTURE.md
+          → "Security boundaries". */}
       <div className="prose" dangerouslySetInnerHTML={{ __html: html }} />
     </main>
   );

@@ -6,13 +6,15 @@
  * it's here: a large share of these will be HEIC from iPhones, which browsers
  * cannot render and which `sharp` does not decode in its default builds.
  *
- * Ingesting rather than archiving first is a deliberate change from PLAN.md §5.
- * The original plan held pending uploads in R2 and only pushed to Images on
- * approval — which would have meant moderating HEIC files with no viewable
- * derivative, i.e. approving photos you cannot see.
+ * Ingesting rather than archiving first is a deliberate change from the
+ * original plan — see historic/HISTORY.md §5. The original plan held pending
+ * uploads in R2 and only pushed to Images on approval — which would have meant
+ * moderating HEIC files with no viewable derivative, i.e. approving photos you
+ * cannot see.
  *
  * Serving from here, never through next/image, is the security boundary in
- * PLAN.md §12: Next's optimizer runs sharp, and these files come from strangers.
+ * ARCHITECTURE.md → "Security boundaries": Next's optimizer runs sharp, and
+ * these files come from strangers.
  */
 
 const API = "https://api.cloudflare.com/client/v4";

@@ -18,7 +18,7 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
  *
  * The source is ours and lives in the repo, so the rendered HTML is trusted.
  * Visitor-submitted text is never routed through here — guestbook entries render
- * as plain text, never as HTML. See PLAN.md §11.
+ * as plain text, never as HTML. See ARCHITECTURE.md → "Security boundaries".
  */
 export function readDoc(name: string): Doc {
   const raw = readFileSync(join(CONTENT_DIR, `${name}.md`), "utf8");

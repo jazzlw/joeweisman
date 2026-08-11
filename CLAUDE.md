@@ -14,13 +14,16 @@ Treat the subject with care. The people reading this site are grieving, and much
 of the content is about a real person recently dead. Plainness beats cleverness in
 both the design and the copy.
 
-`PLAN.md` is the design document — what was chosen, what was rejected, and why.
-Read it before any structural change. `README.md` covers running and deploying.
-`AGENTS.md` holds the technical invariants and the reason behind each.
+`ARCHITECTURE.md` is the design document — the stack, data model, security
+boundaries, and design system, as they are today. `PLAN.md` covers what's
+still ahead. `historic/HISTORY.md` records what was chosen, what was
+rejected, and why — read it (or `ARCHITECTURE.md`) before any structural
+change. `README.md` covers running and deploying. `AGENTS.md` holds the
+technical invariants and the reason behind each.
 
 ## Environment
 
-Node 22 via fnm. Not Node 24 — it needs macOS 13.5+ and this machine is on macOS 12.
+Node 22 via fnm. Not Node 24 — it needs macOS 13.5+.
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
@@ -28,8 +31,7 @@ eval "$(fnm env --shell bash)"
 fnm use 22
 ```
 
-`npm run dev -- -p 3117`. Port 3117, not 3000 — Grafana usually holds 3000 on this
-machine. Never kill a process by name to free a port; find another port.
+`npm run dev -- -p 3117`. Port 3117, not 3000 (by request of the original developer). Never kill a process by name to free a port; find another port.
 
 ## Commands
 
@@ -72,16 +74,18 @@ shape for any new visitor-facing form rather than inventing a new one.
 **Data layer.** Neon Postgres, reached only through `src/lib/db.ts` (a lazy pooled
 client) — the browser never touches the database directly. Schema changes are
 numbered files in `db/` (`001_init.sql`, …), applied idempotently by
-`scripts/migrate.mjs` via `npm run migrate`; there's no ORM. Per `PLAN.md` §3 M6,
-the DB is temporary — the site freezes to static in year two — so keep the schema
-flat and avoid features that assume Postgres is permanent.
+`scripts/migrate.mjs` via `npm run migrate`; there's no ORM. Per `ARCHITECTURE.md`
+→ "Data model", the DB is temporary — the site freezes to static in year two
+(`PLAN.md` has that plan) — so keep the schema flat and avoid features that
+assume Postgres is permanent.
 
-**Photos pipeline is two storage systems with distinct jobs**, per `PLAN.md` §5:
-R2 (`src/lib/r2.ts`, `scripts/archive.mjs`) holds every original permanently as the
-private archive; Cloudflare Images (`src/lib/cf-images.ts`) is the serving layer,
-populated only on admin approval, and handles HEIC transcode/thumbnails/delivery.
-Visitor photos are never routed through `next/image` — see the `sharp`/libvips note
-in `AGENTS.md` §12 — `next/image` is reserved for curated assets (`public/`).
+**Photos pipeline is two storage systems with distinct jobs**, per `ARCHITECTURE.md`
+→ "The photo pipeline": R2 (`src/lib/r2.ts`, `scripts/archive.mjs`) holds every
+original permanently as the private archive; Cloudflare Images (`src/lib/cf-images.ts`)
+is the serving layer, populated only on admin approval, and handles HEIC
+transcode/thumbnails/delivery. Visitor photos are never routed through `next/image` —
+see `ARCHITECTURE.md` → "Security boundaries" — `next/image` is reserved for
+curated assets (`public/`).
 
 **Artifacts are photographs with a `kind`, not a second entity.** `photos.kind`
 is `'photo' | 'artifact'`; `/photos` and `/artifacts` are the same `Gallery`
@@ -165,7 +169,7 @@ or Resend, since a periodic health check would burn their quota.
 **Styling is one file, no build tooling.** All CSS lives in `src/app/tokens.css` —
 no Tailwind, no CSS-in-JS (`AGENTS.md`). Fonts are committed `.woff2` files loaded
 via `next/font/local` in `src/app/fonts.ts`, never `next/font/google` (that fetches
-at build time, a year-three failure mode `PLAN.md` §11 explains).
+at build time, a year-three failure mode `ARCHITECTURE.md` → "Design system" explains).
 
 ## Git commits
 
@@ -202,7 +206,7 @@ at build time, a year-three failure mode `PLAN.md` §11 explains).
 
 ## System access
 
-- **Never run sudo commands directly** — ask Jazz to run them.
+- **Never run sudo commands directly** — ask user to run them.
 
 ## Shell commands
 

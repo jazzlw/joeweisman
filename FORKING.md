@@ -1,34 +1,44 @@
 # Setting up your own memorial site from this fork
 
-This file is written for you, if you want to make a site like the Joe Weisman memorial site.
+This file is written for you, if you want to make a site like the Joe Weisman memorial site. If you have not yet read it, we recommend reading `content/how-to-make-this.md` for a more friendly overview of how to use this file to make a site.
 
 This file is designed to help you do this with the assistance of Claude Code. In particular, we wrote this file so you and Claude Code can both read it. Claude Code, after reading this file, can walk you through setting up and customizing your own version of the Joe Weisman site for your own loved one.
 
 The first step is to "fork" the repository, meaning you will copy all the contents that run our site into a new place that will run yours.
 
-Once it is forked, this information will help Claude Code walk you through personalizing
-and deploying what you have copied, one step at a time, checking in after each one. It will not do everything silently in one long run so that you can control the process and understand what all the pieces are.
+Once the original site is forked, the information in this file will help Claude Code walk you through personalizing and deploying what you have copied, one step at a time, checking in after each one. It will not do everything silently in one long run so that you can control the process and understand what all the pieces are.
 
 
 
 ## What you'll end up with
 
-A site with an obituary, a service-details page, a photo gallery with public
-submissions and admin moderation, a second gallery for things the person made
-or owned, a guestbook, and a mailing-list signup. Visitors can also send files
-that aren't photographs — a recording, a scan, a letter — which go to a private
+A site like https://joeweisman.org/. The core elements are the following:
+
+* an obituary
+* a service-details page
+* a photo gallery with public submissions and admin moderation
+* a guestbook
+* a mailing-list signup.
+
+Visitors can also send files that aren't photographs — a recording, a scan, a letter — which go to a private
 archive only you can see, never onto the site.
 
-`content/recipes/` and the artifacts gallery are both optional — skip either if
-it doesn't apply.
+The original site for Joe Weisman also had a few extra things that you may or may not keep as you like:
+
+* a second gallery for things the person made or owned.
+* A repository of recipes (in `content/recipes/`)
+
+The artifacts gallery and recipe repository are both optional — skip either if it doesn't apply.
 
 Running cost is about **$5/month plus a domain name** (`README.md` → "The
 services" has the exact breakdown). It's built to need no ongoing technical
 maintenance.
 
+
+
 ## If something goes wrong
 
-Just describe the problem to Claude Code. It already has the full context of how this project is built and why, from `CLAUDE.md`, `AGENTS.md`, and`PLAN.md`.
+Just describe the problem to Claude Code. It already has the full context of how this project is built and why, from `CLAUDE.md`, `AGENTS.md`, and `ARCHITECTURE.md`.
 
 Also, we would love to hear if this worked for you, and what was hard if something was. Please go to our original repository and post issues and requests for help, or email us directly.
 
@@ -52,7 +62,21 @@ asking over guessing when something below is ambiguous for their situation.
 
 # Order of operations
 
-1. **Get a GitHub account and fork the joeweisman repository**. Claude, this may involve some explanation to the user about what is happening.
+1. **Get a GitHub account and fork the joeweisman repository.** Claude, this may involve some explanation to the user about what is happening.
+
+   Once it's cloned locally, do two one-time things so you can pull our future
+   fixes later without them overwriting anything you've personalized:
+
+   ```bash
+   git remote add upstream https://github.com/jazzlw/joeweisman.git
+   git config merge.ours.driver true
+   ```
+
+   The first lets you fetch our updates. The second makes the files listed in
+   `.gitattributes` — your content, your photos, your icons — permanently
+   yours: merging our updates will never overwrite them, no matter what we
+   change on our side. See "Staying in sync with our updates" near the end of
+   this file for how that's used going forward.
 
 2. **Get a blank version deployed first**, before touching any content. That
    proves the hosting, database, and image pipeline all work before there's
@@ -76,8 +100,8 @@ asking over guessing when something below is ambiguous for their situation.
 
 4. **Personalize the content.** Everything below is safe to change and has
    no effect on the invariants in `AGENTS.md`:
-   - `src/app/layout.tsx` — `SITE_NAME` and `DESCRIPTION` (used in the page
-     title and social-share previews).
+   - `src/site.config.ts` — `SITE_NAME` and `SITE_DESCRIPTION` (used in the
+     page title and social-share previews).
    - `content/obituary.md` — the home page.
    - `content/service.md` — service details; leave its placeholders
      (`XXXX`) until you have real dates, they only warn, never break a
@@ -101,6 +125,8 @@ asking over guessing when something below is ambiguous for their situation.
      note in `AGENTS.md`.
    - `content/how-to-make-this.md` — this page is about *us* making this for
      Joe. Rewrite it or drop it, along with its link in `src/app/footer.tsx`.
+   - `PLAN.md` — Joe-specific to-dos (a photo deadline, a QR code for his
+     program). Not code, safe to ignore, delete, or replace with your own.
    - `content/recipes/` — remove this section and its nav entry
      (`src/lib/sections.ts`) entirely if it doesn't apply to your person. The
      same goes for the artifacts gallery (`src/app/artifacts/`), which is for
@@ -139,13 +165,43 @@ asking over guessing when something below is ambiguous for their situation.
    entry, upload a photo, approve it from `/admin`, and sign up for the
    mailing list yourself.
 
+10. **Explain to the user about backups:** Read the `README.md` file and ensure user understands how to protect precious information in the years to come.
+
+## Staying in sync with our updates
+
+We'll keep fixing bugs and adding features after you fork — the Cloudflare
+Turnstile human-check has already changed once. To pull those in:
+
+```bash
+git fetch upstream
+git merge upstream/main
+```
+
+Because of the one-time `git config merge.ours.driver true` from step 1, this
+never touches the files listed in `.gitattributes` — your content, your
+photos, your icons, `src/site.config.ts`. Everything else is application
+code, which merges normally, and that's how a fix reaches you automatically
+without you having to redo it by hand.
+
+One edge case: if you've *deleted* a file we still maintain (say you dropped
+`content/recipes/` entirely and we later touch something inside it), git will
+ask you to resolve a "modify/delete" conflict once — tell it to keep the
+deletion. That only happens for files you've removed outright, never for ones
+you've simply edited.
+
 ## Reference
 
 - `README.md` — running locally, deploying, moderating `/admin`, the full
   list of services and what each costs.
-- `PLAN.md` — why each major decision was made, and what was tried and
-  rejected instead. Read this before any structural change.
+- `ARCHITECTURE.md` — what the site is: stack, data model, security
+  boundaries, design system, as they stand today. Read this before any
+  structural change.
 - `AGENTS.md` — the technical invariants this codebase depends on (visitor
   content is never rendered as HTML, no Tailwind, nothing animates, and a
   few others) — worth knowing before changing anything, not just for Claude.
+- `PLAN.md` — what's still ahead for *this* site (Joe's), not yours. Skip it
+  unless you're curious.
+- `historic/` — the original proposal and the full decision history: why
+  each major choice was made, and what was tried and rejected instead.
+  Entirely optional reading; nothing here depends on it.
 

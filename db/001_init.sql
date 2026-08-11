@@ -1,8 +1,8 @@
--- Initial schema. See PLAN.md §5.
+-- Initial schema. See ARCHITECTURE.md → "Data model".
 --
 -- Deliberately small. This database is scaffolding for the active period, not
--- permanent infrastructure — the site freezes to static in year two (PLAN.md §3,
--- M6), so the shape needs to flatten cleanly to HTML.
+-- permanent infrastructure — the site freezes to static in year two (PLAN.md
+-- has that plan), so the shape needs to flatten cleanly to HTML.
 
 -- Guestbook. Note the default: published, not pending. A tribute that vanishes
 -- on submit reads as broken to the person who wrote it, so entries go live
@@ -50,7 +50,7 @@ create index if not exists photos_moderation_queue
 
 
 -- Address collection. No confirmation tokens, no unsubscribe machinery, no
--- status enum — sending happens by hand from Gmail (PLAN.md §6).
+-- status enum — sending happens by hand from Gmail (ARCHITECTURE.md → "Stack").
 create table if not exists contacts (
   id         uuid primary key default gen_random_uuid(),
   email      text not null,

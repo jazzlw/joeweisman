@@ -67,8 +67,8 @@ export async function signGuestbook(
       };
     }
 
-    // Published immediately — PLAN.md §1. A tribute that vanishes on submit
-    // reads as broken to the person who wrote it, and they don't come back.
+    // Published immediately — historic/HISTORY.md §1. A tribute that vanishes
+    // on submit reads as broken to the person who wrote it, and they don't come back.
     await db()`
       insert into guestbook_entries (name, message, email, ip_hash, status)
       values (${name}, ${message}, ${email || null}, ${ipHash}, 'published')

@@ -1,0 +1,18 @@
+# Files that are permanently a fork's own, once forked — never overwritten by
+# merging in updates from this repo. Requires the one-time setup in FORKING.md
+# ("git config merge.ours.driver true"); without it these lines are inert and
+# git falls back to a normal merge.
+#
+# Scope is deliberately narrow: only files that are *entirely* personal
+# content, never code that also needs to keep receiving fixes. tokens.css, for
+# example, is not listed here — its color palette lives in a block separate
+# from component styles, so a normal line-based merge already keeps a fork's
+# colors while still picking up styling fixes.
+content/*.md merge=ours
+content/recipes/** merge=ours
+public/portrait-hero.jpg merge=ours
+public/og.jpg merge=ours
+src/app/icon.png merge=ours
+src/app/apple-icon.png merge=ours
+src/site.config.ts merge=ours
+PLAN.md merge=ours
