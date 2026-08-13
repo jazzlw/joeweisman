@@ -10,8 +10,14 @@ export default function SubscribePage() {
       <hr className="rule" />
       <div className="prose">
         <p>
-          Leave your address and we will write when the service details are
-          confirmed.
+          Leave your address and we will write when there is more news about the
+          memorial.
+        </p>
+        <p>
+          The date and place are already settled &mdash; they are on{" "}
+          <a href="/service">the service page</a>. If you are coming, it helps
+          to <a href="/rsvp">let us know</a>; that adds you to this list too, so
+          there is no need to do both.
         </p>
         <p>
           Rest assured, you are signing up for only a handful of messages. You
