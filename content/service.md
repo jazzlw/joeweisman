@@ -6,7 +6,7 @@ There will be a celebration of Joe's life on **Saturday, September 19th, from
 1 to 5 in the afternoon**, at **The Vue** in Corvallis, Oregon.
 
 517 SW 2nd Street, Corvallis, OR 97330 —
-[open it in a map](https://maps.google.com/?q=517+SW+2nd+St,+Corvallis,+OR+97330).
+[open it in a map](https://www.google.com/maps/place/Vue+Corvallis/@44.5597332,-123.2617903,17z).
 
 The afternoon runs from 1 to 5, and **the service itself is from 2:00 to 3:30**.
 If you want to be there for that part, please arrive before 2. There is time to
