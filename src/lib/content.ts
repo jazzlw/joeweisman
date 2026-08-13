@@ -4,6 +4,42 @@ import { marked } from "marked";
 
 const CONTENT_DIR = join(process.cwd(), "content");
 
+/**
+ * Send links that leave the site to a new tab.
+ *
+ * Somebody reading the service details and tapping the map should still have the
+ * page when they come back — on a phone, following it in place means a return
+ * journey through the browser's back button to find the address again.
+ *
+ * Only absolute http(s) links. Everything internal (/rsvp, /photos/add) stays a
+ * same-tab navigation, which also keeps the plain-anchor behaviour the Turnstile
+ * pages depend on.
+ *
+ * `rel="noopener noreferrer"` because a new tab otherwise gets a handle back to
+ * this one through `window.opener`.
+ */
+const escapeAttr = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+marked.use({
+  renderer: {
+    link({ href, title, tokens }) {
+      // Regular function, not an arrow: `this.parser` renders the link's own
+      // inline content (emphasis, code) rather than flattening it to text.
+      const text = this.parser.parseInline(tokens);
+      const external = /^https?:\/\//i.test(href);
+      const attrs = [
+        `href="${escapeAttr(href)}"`,
+        title ? `title="${escapeAttr(title)}"` : "",
+        external ? 'target="_blank" rel="noopener noreferrer"' : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `<a ${attrs}>${text}</a>`;
+    },
+  },
+});
+
 export type Doc = {
   title?: string;
   html: string;
