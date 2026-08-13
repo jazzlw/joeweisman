@@ -5,7 +5,8 @@ title: "A Celebration of Joe's Life"
 There will be a celebration of Joe's life on **Saturday, September 19th, from
 1 to 5 in the afternoon**, at **The Vue** in Corvallis, Oregon.
 
-XXXX — street address, and a line about parking and how to find the entrance.
+517 SW 2nd Street, Corvallis, OR 97330 —
+[open it in a map](https://maps.google.com/?q=517+SW+2nd+St,+Corvallis,+OR+97330).
 
 Come for any part of it. It is an afternoon rather than a ceremony with a start
 you can be late for, so arrive when you can and stay as long as you like.
