@@ -25,7 +25,9 @@ news about the memorial — a handful of messages, and nothing after that.
 
 Corvallis is about an hour and a half south of Portland.
 
-XXXX — a note about where to stay, so nobody has to work it out alone.
+**If you need a room, book it soon.** There is a football game that weekend, and
+hotels in Corvallis fill up early and get expensive when there is a game on. If
+nothing is left in town, Albany is a short drive east and usually has rooms.
 
 ## Photographs
 
