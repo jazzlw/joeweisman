@@ -15,6 +15,20 @@ export default function ServicePage() {
       <main className="page" id="main">
         <h1 className="page-title">{doc.title ?? "The Service"}</h1>
         <hr className="rule" />
+
+        {/* Plain anchor, not Link: /rsvp carries a Turnstile widget, and a
+            client-side navigation would leave it unrendered. See needsFullLoad
+            in lib/sections. */}
+        <div className="toolbar-row">
+          <a href="/rsvp" className="btn-primary">
+            Tell us you&rsquo;re coming
+          </a>
+          <p className="muted-note">
+            It helps with the food and the chairs. Not a ticket &mdash; come
+            either way.
+          </p>
+        </div>
+
         <div className="prose" dangerouslySetInnerHTML={{ __html: doc.html }} />
       </main>
     );

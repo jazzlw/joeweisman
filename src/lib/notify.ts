@@ -65,6 +65,33 @@ async function send(subject: string, text: string): Promise<void> {
  * go live immediately, so the useful question is "does this need removing?",
  * and answering it shouldn't require opening the admin page.
  */
+/**
+ * Someone has said they are coming.
+ *
+ * Notified, unlike a plain mailing-list signup, because this one has a date
+ * attached: the count feeds catering and seating, and a reply arriving the week
+ * before the service is worth seeing when it lands rather than whenever someone
+ * next opens the admin page.
+ */
+export async function notifyRsvp(details: {
+  email: string;
+  name: string | null;
+  note: string | null;
+}): Promise<void> {
+  const who = details.name || details.email;
+  await send(
+    `RSVP: ${who}`,
+    [
+      `${who} is coming to the service.`,
+      `Their email: ${details.email}`,
+      details.note ? `\nThey said:\n${details.note}` : "",
+      "",
+      "The running total is on the admin page:",
+      adminUrl(),
+    ].join("\n"),
+  );
+}
+
 export async function notifyGuestbookEntry(entry: {
   name: string;
   message: string;

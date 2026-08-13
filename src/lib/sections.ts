@@ -24,7 +24,7 @@
  * cost is one slower navigation on three pages; the alternative is a form that
  * cannot be submitted. **Do not turn these back into <Link>.**
  */
-export const NEEDS_FULL_LOAD = ["/photos/add", "/guestbook/add", "/subscribe"];
+export const NEEDS_FULL_LOAD = ["/photos/add", "/guestbook/add", "/subscribe", "/rsvp"];
 
 /** True when a href lands on a page that renders a Turnstile widget. */
 export function needsFullLoad(href: string): boolean {

@@ -82,6 +82,9 @@ export default async function AdminPage() {
   const [counts] = (await db()`
     select
       (select count(*)::int from contacts where removed_at is null) as contacts,
+      -- Not filtered on removed_at: someone who unsubscribed and later said they
+      -- are coming is still a head to feed.
+      (select count(*)::int from contacts where rsvp_at is not null) as rsvps,
       (select count(*)::int from guestbook_entries where status = 'published') as published,
       (select count(*)::int from guestbook_entries where status = 'removed') as removed,
       (select count(*)::int from photos where status = 'pending') as photos_pending,
@@ -90,6 +93,7 @@ export default async function AdminPage() {
         where status = 'approved' and archived_at is null) as photos_unarchived
   `) as {
     contacts: number;
+    rsvps: number;
     published: number;
     removed: number;
     photos_pending: number;
@@ -178,6 +182,10 @@ export default async function AdminPage() {
         <div>
           <dt>Email list</dt>
           <dd>{counts.contacts}</dd>
+        </div>
+        <div>
+          <dt>Coming</dt>
+          <dd>{counts.rsvps}</dd>
         </div>
         <div className={counts.photos_pending > 0 ? "stat-attention" : undefined}>
           <dt>Photos waiting</dt>

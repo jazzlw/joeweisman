@@ -1,8 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { notifyRsvp } from "@/lib/notify";
 
 export type SubscribeState = {
   status: "idle" | "ok" | "error";
@@ -31,6 +33,10 @@ export async function subscribe(
   const email = (formData.get("email") as string | null)?.trim() ?? "";
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const note = (formData.get("note") as string | null)?.trim() ?? "";
+  // Set by a hidden field on the RSVP page. Same form, same table, same consent —
+  // an RSVP is a signup that also said yes, so the only difference is this flag
+  // and the wording around it.
+  const rsvp = formData.get("rsvp") === "1";
 
   if (!email) return { status: "error", message: "Please enter an email address." };
   if (email.length > MAX_EMAIL || !EMAIL.test(email)) {
@@ -56,12 +62,25 @@ export async function subscribe(
   if (!check.ok) return { status: "error", message: check.error };
 
   try {
-    // on conflict do nothing: signing up twice is a silent success, never an error.
-    // The unique index is on lower(email), so case doesn't create duplicates.
+    // Signing up twice is a silent success, never an error, and the unique index
+    // is on lower(email) so case doesn't create duplicates.
+    //
+    // `do update` rather than `do nothing`, because plenty of people who RSVP
+    // are already on the list from weeks ago — `do nothing` would accept their
+    // reply and record nothing, which is the worst outcome available. coalesce
+    // throughout so an update only ever fills a blank: it keeps the first rsvp_at
+    // (when they actually said yes) and never overwrites a name or note they
+    // gave earlier with an empty one now.
+    //
+    // removed_at is deliberately untouched. Someone who asked to be taken off
+    // the list has been honoured, and an RSVP doesn't silently undo that.
     await db()`
-      insert into contacts (email, name, note)
-      values (${email}, ${name || null}, ${note || null})
-      on conflict do nothing
+      insert into contacts (email, name, note, rsvp_at)
+      values (${email}, ${name || null}, ${note || null}, ${rsvp ? new Date() : null})
+      on conflict (lower(email)) do update set
+        rsvp_at = coalesce(contacts.rsvp_at, excluded.rsvp_at),
+        name    = coalesce(contacts.name, excluded.name),
+        note    = coalesce(contacts.note, excluded.note)
     `;
   } catch (e) {
     console.error("Failed to record a contact:", e);
@@ -69,6 +88,15 @@ export async function subscribe(
       status: "error",
       message:
         "Something went wrong saving that. Please try again, or write to contact@joeweisman.org.",
+    };
+  }
+
+  if (rsvp) {
+    after(() => notifyRsvp({ email, name: name || null, note: note || null }));
+    return {
+      status: "ok",
+      message:
+        "Thank you — we have you down as coming, and we'll write when there's anything else to say.",
     };
   }
 

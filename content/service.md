@@ -2,21 +2,29 @@
 title: "A Celebration of Joe's Life"
 ---
 
-There will be a celebration of Joe's life on **Saturday, September 19th**, in
-Corvallis, Oregon.
+There will be a celebration of Joe's life on **Saturday, September 19th, from
+1 to 5 in the afternoon**, at **The Vue** in Corvallis, Oregon.
 
-The time and the place are still being arranged. They will be posted here as soon
-as they are settled, along with anything useful about parking and getting there.
+XXXX — street address, and a line about parking and how to find the entrance.
 
-If you would like to be told when the details are fixed, you can
-[leave your email address](/subscribe). It will only be used for news about the
-memorial — a handful of messages, and nothing after that.
+Come for any part of it. It is an afternoon rather than a ceremony with a start
+you can be late for, so arrive when you can and stay as long as you like.
+
+## Please let us know if you are coming
+
+[Tell us you're coming](/rsvp) — it helps with the food and the chairs. It is
+not a ticket and nobody will be turned away, so if you decide at the last
+minute, come anyway.
+
+If you would rather just hear news about the memorial, you can
+[leave your email address](/subscribe) instead. Either way it is only used for
+news about the memorial — a handful of messages, and nothing after that.
 
 ## If you are coming from out of town
 
-Corvallis is about an hour and a half south of Portland. Once the venue is
-confirmed we will put something here about where to stay and how to get around,
-so nobody has to work it out alone.
+Corvallis is about an hour and a half south of Portland.
+
+XXXX — a note about where to stay, so nobody has to work it out alone.
 
 ## Photographs
 

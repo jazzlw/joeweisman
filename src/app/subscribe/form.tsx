@@ -6,7 +6,20 @@ import { subscribe, type SubscribeState } from "./actions";
 
 const initial: SubscribeState = { status: "idle" };
 
-export default function SubscribeForm({ siteKey }: { siteKey?: string }) {
+/**
+ * The mailing-list form, in one of two modes.
+ *
+ * RSVP is the same fields, the same table and the same consent — a signup that
+ * also says yes — so it is a flag here rather than a second form to keep in
+ * step. Only the wording, the button, and one hidden field differ.
+ */
+export default function SubscribeForm({
+  siteKey,
+  rsvp = false,
+}: {
+  siteKey?: string;
+  rsvp?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(subscribe, initial);
   const widget = useRef<HTMLDivElement>(null);
 
@@ -27,7 +40,7 @@ export default function SubscribeForm({ siteKey }: { siteKey?: string }) {
     return (
       <>
         <hr className="rule" />
-        <h2>You are on the list!</h2>
+        <h2>{rsvp ? "We'll see you there" : "You are on the list!"}</h2>
         <p className="form-ok" role="status">
           {state.message}
         </p>
@@ -42,6 +55,10 @@ export default function SubscribeForm({ siteKey }: { siteKey?: string }) {
       )}
 
       <form action={formAction} className="form">
+        {/* Read server-side to set rsvp_at. A hidden field rather than a second
+            action, so both paths share one validated, Turnstile-checked route. */}
+        {rsvp && <input type="hidden" name="rsvp" value="1" />}
+
         <div className="field">
           <label htmlFor="email">Your email address</label>
           <input
@@ -64,9 +81,20 @@ export default function SubscribeForm({ siteKey }: { siteKey?: string }) {
 
         <div className="field">
           <label htmlFor="note">
-            How did you know Joe? <span className="optional">(optional)</span>
+            {rsvp ? "Anything we should know?" : "How did you know Joe?"}{" "}
+            <span className="optional">(optional)</span>
           </label>
-          <textarea id="note" name="note" rows={3} maxLength={500} />
+          <textarea
+            id="note"
+            name="note"
+            rows={3}
+            maxLength={500}
+            placeholder={
+              rsvp
+                ? "How many of you are coming, whether you need a chair near the front — anything useful"
+                : undefined
+            }
+          />
         </div>
 
         {/* Honeypot. Hidden from people, tempting to naive bots. Not display:none —
@@ -95,7 +123,7 @@ export default function SubscribeForm({ siteKey }: { siteKey?: string }) {
         )}
 
         <button type="submit" disabled={pending}>
-          {pending ? "Sending…" : "Send it"}
+          {pending ? "Sending…" : rsvp ? "Yes, I'll be there" : "Send it"}
         </button>
       </form>
     </>
