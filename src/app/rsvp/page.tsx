@@ -18,10 +18,14 @@ export default function RsvpPage() {
       <hr className="rule" />
 
       <div className="prose">
+        {/* The service time is repeated here on purpose: people arrive at this
+            page straight from a link and may never see /service, and turning up
+            after 2 would mean missing the part they came for. */}
         <p>
           The celebration of Joe&rsquo;s life is on{" "}
           <strong>Saturday, September 19th, from 1 to 5 in the afternoon</strong>,
-          at The Vue in Corvallis.
+          at The Vue in Corvallis. The service itself is from{" "}
+          <strong>2:00 to 3:30</strong>.
         </p>
         <p>
           Letting us know you are coming helps with the food and the chairs. It

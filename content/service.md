@@ -8,8 +8,9 @@ There will be a celebration of Joe's life on **Saturday, September 19th, from
 517 SW 2nd Street, Corvallis, OR 97330 —
 [open it in a map](https://maps.google.com/?q=517+SW+2nd+St,+Corvallis,+OR+97330).
 
-Come for any part of it. It is an afternoon rather than a ceremony with a start
-you can be late for, so arrive when you can and stay as long as you like.
+The afternoon runs from 1 to 5, and **the service itself is from 2:00 to 3:30**.
+If you want to be there for that part, please arrive before 2. There is time to
+gather beforehand, and to stay on afterwards.
 
 ## Please let us know if you are coming
 
