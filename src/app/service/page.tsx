@@ -19,7 +19,7 @@ export default function ServicePage() {
         {/* Plain anchor, not Link: /rsvp carries a Turnstile widget, and a
             client-side navigation would leave it unrendered. See needsFullLoad
             in lib/sections. */}
-        <div className="toolbar-row">
+        <div className="toolbar-row toolbar-row--wide">
           <a href="/rsvp" className="btn-primary">
             Tell us you&rsquo;re coming
           </a>
