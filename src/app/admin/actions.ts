@@ -193,6 +193,30 @@ export async function purgeArtifactFile(id: string): Promise<void> {
   revalidatePath("/admin");
 }
 
+/**
+ * Format a timestamp in Pacific time, e.g. "2026-08-13 6:25 PM PDT".
+ *
+ * The database stores UTC and a raw `toISOString()` used to go straight into
+ * the CSV — technically correct, but a timestamp near midnight UTC lands on
+ * the *previous* calendar day in Pacific, which is confusing enough that it
+ * looks like a bug. `Intl.DateTimeFormat` handles the PST/PDT switch itself,
+ * so this needs no extra dependency and no manual daylight-saving logic.
+ */
+function toPacific(d: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${get("dayPeriod")} ${get("timeZoneName")}`;
+}
+
 export async function exportContactsCsv(): Promise<string> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
 
@@ -216,7 +240,7 @@ export async function exportContactsCsv(): Promise<string> {
   };
 
   // rsvp as a plain yes/no as well as the timestamp: the column gets sorted and
-  // filtered in a spreadsheet, and "yes" does that job where an ISO date does not.
+  // filtered in a spreadsheet, and "yes" does that job where a timestamp does not.
   return [
     "email,name,note,created_at,rsvp,rsvp_at,party_size",
     ...rows.map((r) =>
@@ -224,9 +248,9 @@ export async function exportContactsCsv(): Promise<string> {
         r.email,
         r.name,
         r.note,
-        r.created_at.toISOString(),
+        toPacific(r.created_at),
         r.rsvp_at ? "yes" : "no",
-        r.rsvp_at ? r.rsvp_at.toISOString() : "",
+        r.rsvp_at ? toPacific(r.rsvp_at) : "",
         r.party_size,
       ]
         .map(esc)
