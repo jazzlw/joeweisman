@@ -24,8 +24,9 @@ export default function ServicePage() {
             Tell us you&rsquo;re coming
           </a>
           <p className="muted-note">
-            It helps with the food and the chairs. Not a ticket &mdash; come
-            either way.
+            It helps with the food and the chairs.
+            <br />
+            Not a ticket &mdash; come either way.
           </p>
         </div>
 
