@@ -19,6 +19,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_EMAIL = 320;
 const MAX_NAME = 120;
 const MAX_NOTE = 500;
+const MAX_PARTY_SIZE = 50;
 
 export async function subscribe(
   _prev: SubscribeState,
@@ -46,6 +47,18 @@ export async function subscribe(
     return { status: "error", message: "That's longer than we can store. Please shorten it." };
   }
 
+  // Only present on the RSVP form, and optional even there — left blank, the
+  // admin headcount treats it as one person rather than blocking the submit.
+  const partySizeRaw = (formData.get("partySize") as string | null)?.trim();
+  let partySize: number | null = null;
+  if (partySizeRaw) {
+    const n = Number.parseInt(partySizeRaw, 10);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_PARTY_SIZE) {
+      return { status: "error", message: `Number attending should be between 1 and ${MAX_PARTY_SIZE}.` };
+    }
+    partySize = n;
+  }
+
   const hdrs = await headers();
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
@@ -69,18 +82,19 @@ export async function subscribe(
     // are already on the list from weeks ago — `do nothing` would accept their
     // reply and record nothing, which is the worst outcome available. coalesce
     // throughout so an update only ever fills a blank: it keeps the first rsvp_at
-    // (when they actually said yes) and never overwrites a name or note they
-    // gave earlier with an empty one now.
+    // (when they actually said yes) and never overwrites a name, note, or party
+    // size they gave earlier with an empty one now.
     //
     // removed_at is deliberately untouched. Someone who asked to be taken off
     // the list has been honoured, and an RSVP doesn't silently undo that.
     await db()`
-      insert into contacts (email, name, note, rsvp_at)
-      values (${email}, ${name || null}, ${note || null}, ${rsvp ? new Date() : null})
+      insert into contacts (email, name, note, rsvp_at, party_size)
+      values (${email}, ${name || null}, ${note || null}, ${rsvp ? new Date() : null}, ${partySize})
       on conflict (lower(email)) do update set
-        rsvp_at = coalesce(contacts.rsvp_at, excluded.rsvp_at),
-        name    = coalesce(contacts.name, excluded.name),
-        note    = coalesce(contacts.note, excluded.note)
+        rsvp_at    = coalesce(contacts.rsvp_at, excluded.rsvp_at),
+        name       = coalesce(contacts.name, excluded.name),
+        note       = coalesce(contacts.note, excluded.note),
+        party_size = coalesce(contacts.party_size, excluded.party_size)
     `;
   } catch (e) {
     console.error("Failed to record a contact:", e);
@@ -92,7 +106,7 @@ export async function subscribe(
   }
 
   if (rsvp) {
-    after(() => notifyRsvp({ email, name: name || null, note: note || null }));
+    after(() => notifyRsvp({ email, name: name || null, note: note || null, partySize }));
     return {
       status: "ok",
       message:

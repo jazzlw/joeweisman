@@ -77,12 +77,13 @@ export async function notifyRsvp(details: {
   email: string;
   name: string | null;
   note: string | null;
+  partySize: number | null;
 }): Promise<void> {
   const who = details.name || details.email;
   await send(
     `RSVP: ${who}`,
     [
-      `${who} is coming to the service.`,
+      `${who} is coming to the service${details.partySize ? `, party of ${details.partySize}` : ""}.`,
       `Their email: ${details.email}`,
       details.note ? `\nThey said:\n${details.note}` : "",
       "",

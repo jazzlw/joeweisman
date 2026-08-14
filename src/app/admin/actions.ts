@@ -197,7 +197,7 @@ export async function exportContactsCsv(): Promise<string> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
 
   const rows = (await db()`
-    select email, name, note, created_at, rsvp_at
+    select email, name, note, created_at, rsvp_at, party_size
     from contacts
     where removed_at is null
     order by created_at
@@ -207,6 +207,7 @@ export async function exportContactsCsv(): Promise<string> {
     note: string | null;
     created_at: Date;
     rsvp_at: Date | null;
+    party_size: number | null;
   }[];
 
   const esc = (v: unknown) => {
@@ -217,7 +218,7 @@ export async function exportContactsCsv(): Promise<string> {
   // rsvp as a plain yes/no as well as the timestamp: the column gets sorted and
   // filtered in a spreadsheet, and "yes" does that job where an ISO date does not.
   return [
-    "email,name,note,created_at,rsvp,rsvp_at",
+    "email,name,note,created_at,rsvp,rsvp_at,party_size",
     ...rows.map((r) =>
       [
         r.email,
@@ -226,6 +227,7 @@ export async function exportContactsCsv(): Promise<string> {
         r.created_at.toISOString(),
         r.rsvp_at ? "yes" : "no",
         r.rsvp_at ? r.rsvp_at.toISOString() : "",
+        r.party_size,
       ]
         .map(esc)
         .join(","),

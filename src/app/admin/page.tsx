@@ -85,6 +85,11 @@ export default async function AdminPage() {
       -- Not filtered on removed_at: someone who unsubscribed and later said they
       -- are coming is still a head to feed.
       (select count(*)::int from contacts where rsvp_at is not null) as rsvps,
+      -- A blank "number attending" counts as one person, not zero — the point
+      -- of this figure is a headcount for food and chairs, and a signup who
+      -- didn't answer the question is still at least themselves.
+      (select coalesce(sum(coalesce(party_size, 1)), 0)::int
+        from contacts where rsvp_at is not null) as attending,
       (select count(*)::int from guestbook_entries where status = 'published') as published,
       (select count(*)::int from guestbook_entries where status = 'removed') as removed,
       (select count(*)::int from photos where status = 'pending') as photos_pending,
@@ -94,6 +99,7 @@ export default async function AdminPage() {
   `) as {
     contacts: number;
     rsvps: number;
+    attending: number;
     published: number;
     removed: number;
     photos_pending: number;
@@ -186,6 +192,10 @@ export default async function AdminPage() {
         <div>
           <dt>Coming</dt>
           <dd>{counts.rsvps}</dd>
+        </div>
+        <div>
+          <dt>Total attending</dt>
+          <dd>{counts.attending}</dd>
         </div>
         <div className={counts.photos_pending > 0 ? "stat-attention" : undefined}>
           <dt>Photos waiting</dt>
