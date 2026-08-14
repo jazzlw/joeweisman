@@ -106,6 +106,7 @@ React or any of the technical stuff. The following are some key files you might 
 | --------------------- | ------------------------------------------------------------ |
 | `content/obituary.md` | The home page                                                |
 | `content/service.md`  | `/service` — while empty, that page shows a placeholder instead. Its `title:` frontmatter is the page heading. |
+| `content/rsvp.md`     | `/rsvp` — the service time and why to RSVP. Repeats the service time from `content/service.md` on purpose (see the comment in `src/app/rsvp/page.tsx`), so keep the two in sync by hand. |
 | `content/recipes/`    | `/recipes` — Joe's own text files. See the README in that directory before touching them. |
 
 Plain Markdown: blank line between paragraphs, `*italic*`, `## subheading`. Edit, commit,
