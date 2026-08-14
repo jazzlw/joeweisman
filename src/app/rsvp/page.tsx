@@ -30,7 +30,7 @@ export default function RsvpPage() {
       <SubscribeForm siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} rsvp />
 
       <p className="contact-note">
-        Would you rather just tell someone?{" "}
+        Want to just write us?{" "}
         <a href="mailto:contact@joeweisman.org">contact@joeweisman.org</a>.
       </p>
     </main>
