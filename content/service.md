@@ -8,13 +8,12 @@ There will be a celebration of Joe's life on **Saturday, September 19th, from
 517 SW 2nd Street, Corvallis, OR 97330 —
 [open it in a map](https://www.google.com/maps?cid=13325151879433941951).
 
-The afternoon runs from 1 to 5, and **the service itself is from 2:00 to 3:30**.
-If you want to be there for that part, please arrive before 2. There is time to
-gather beforehand, and to stay on afterwards.
+The afternoon runs from 1 to 5, and **the service itself begins at 2:00**. The service will be followed by a reception. If you want to be there for the service, please arrive before 2. There will also be time to
+gather afterwards.
 
 ## Please let us know if you are coming
 
-[Tell us you're coming](/rsvp) — it helps with the food and the chairs. It is
+[Tell us you're coming](/rsvp) — it will help us plan appropriate levels of food and chairs. But telling us is
 not a ticket and nobody will be turned away, so if you decide at the last
 minute, come anyway.
 
@@ -24,7 +23,7 @@ news about the memorial — a handful of messages, and nothing after that.
 
 ## If you are coming from out of town
 
-Corvallis is about an hour and a half south of Portland.
+Corvallis is about an hour and a half south of Portland by car.
 
 **If you need a room, book it soon.** There is a football game that weekend, and
 hotels in Corvallis fill up early and get expensive when there is a game on. If
@@ -37,7 +36,7 @@ If you have photographs of Joe, [you can send them here](/photos/add). Anything 
 talked you into. Pictures sent in before the 19th can be part of the day itself.
 
 Photos straight off a phone are fine, and you can add a note to each one saying
-who is in it or where it was. You are very welcome to bring prints with you as
+who is in it or where it was. You are encouraged to bring prints to the service as
 well.
 
 ## Collecting Memories
