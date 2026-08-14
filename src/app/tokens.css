@@ -389,6 +389,11 @@ body {
    on the viewport regardless of the row's resolved width, so it still
    centers correctly once max-width caps it below 100vw. */
 .toolbar-row--wide {
+  /* Overrides the base .toolbar-row's space-between: on /photos the button
+     and the reload note read fine pinned to opposite edges, but here the
+     extra width this variant adds is exactly what pushed them apart —
+     center pulls them back next to each other, gap apart, as one unit. */
+  justify-content: center;
   width: 100vw;
   max-width: 56rem;
   margin-left: 50%;
