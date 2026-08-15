@@ -217,6 +217,11 @@ function toPacific(d: Date): string {
   return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${get("dayPeriod")} ${get("timeZoneName")}`;
 }
 
+function escCsv(v: unknown): string {
+  const s = v == null ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 export async function exportContactsCsv(): Promise<string> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
 
@@ -234,11 +239,6 @@ export async function exportContactsCsv(): Promise<string> {
     party_size: number | null;
   }[];
 
-  const esc = (v: unknown) => {
-    const s = v == null ? "" : String(v);
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-
   // rsvp as a plain yes/no as well as the timestamp: the column gets sorted and
   // filtered in a spreadsheet, and "yes" does that job where a timestamp does not.
   return [
@@ -253,8 +253,40 @@ export async function exportContactsCsv(): Promise<string> {
         r.rsvp_at ? toPacific(r.rsvp_at) : "",
         r.party_size,
       ]
-        .map(esc)
+        .map(escCsv)
         .join(","),
+    ),
+  ].join("\n");
+}
+
+/**
+ * Every RSVP submission, in order — not just the latest per email.
+ *
+ * contacts collapses repeat RSVPs from the same address into one row, which
+ * is right for a mailing list and wrong for notes: a second submission only
+ * ever filled in what the first left blank, so an updated headcount or a new
+ * detail silently didn't show up anywhere. rsvp_notes is a plain log, one row
+ * per submission, so this export is where the full history actually lives.
+ */
+export async function exportRsvpNotesCsv(): Promise<string> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  const rows = (await db()`
+    select email, name, note, party_size, created_at
+    from rsvp_notes
+    order by created_at
+  `) as {
+    email: string;
+    name: string | null;
+    note: string | null;
+    party_size: number | null;
+    created_at: Date;
+  }[];
+
+  return [
+    "email,name,note,party_size,created_at",
+    ...rows.map((r) =>
+      [r.email, r.name, r.note, r.party_size, toPacific(r.created_at)].map(escCsv).join(","),
     ),
   ].join("\n");
 }

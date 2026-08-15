@@ -80,10 +80,18 @@ export async function subscribe(
     //
     // `do update` rather than `do nothing`, because plenty of people who RSVP
     // are already on the list from weeks ago — `do nothing` would accept their
-    // reply and record nothing, which is the worst outcome available. coalesce
-    // throughout so an update only ever fills a blank: it keeps the first rsvp_at
-    // (when they actually said yes) and never overwrites a name, note, or party
-    // size they gave earlier with an empty one now.
+    // reply and record nothing, which is the worst outcome available.
+    //
+    // party_size is the odd one out: it takes the *new* value over the old,
+    // rather than coalescing the other way, because the admin headcount reads
+    // this column and a re-RSVP is usually someone updating their count —
+    // keeping the first answer would silently freeze the headcount at a
+    // number the person themselves has since corrected. name, note and
+    // rsvp_at keep the opposite behaviour: they only ever fill in what was
+    // blank, so the first rsvp_at (when they actually said yes) and an
+    // earlier name or note survive a later submission that left them out.
+    // The full note history lives in rsvp_notes regardless of what happens
+    // here.
     //
     // removed_at is deliberately untouched. Someone who asked to be taken off
     // the list has been honoured, and an RSVP doesn't silently undo that.
@@ -94,8 +102,20 @@ export async function subscribe(
         rsvp_at    = coalesce(contacts.rsvp_at, excluded.rsvp_at),
         name       = coalesce(contacts.name, excluded.name),
         note       = coalesce(contacts.note, excluded.note),
-        party_size = coalesce(contacts.party_size, excluded.party_size)
+        party_size = coalesce(excluded.party_size, contacts.party_size)
     `;
+
+    // A second RSVP from the same address is usually an update — a changed
+    // headcount, a new detail — and the coalesce above only ever fills in
+    // what was blank on `contacts`, so a later note would otherwise vanish
+    // silently instead of overwriting or appending. This is a plain insert,
+    // never an upsert, so every submission survives as its own row.
+    if (rsvp) {
+      await db()`
+        insert into rsvp_notes (email, name, note, party_size)
+        values (${email}, ${name || null}, ${note || null}, ${partySize})
+      `;
+    }
   } catch (e) {
     console.error("Failed to record a contact:", e);
     return {
