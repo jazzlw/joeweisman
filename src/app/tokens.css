@@ -53,12 +53,6 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  /* .toolbar-row--wide breaks out to 100vw to escape .page's reading-column
-     width. vw doesn't account for the scrollbar's own width, so on a
-     desktop browser with a visible (non-overlay) scrollbar that can overhang
-     by a few pixels — this is the guard against a horizontal scrollbar
-     appearing because of it. */
-  overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: var(--body);
@@ -379,28 +373,8 @@ body {
   flex-wrap: wrap;
   gap: var(--s3);
   margin-top: var(--s4);
-  margin-bottom: var(--s4);
 }
 .toolbar-row .muted-note { margin: 0; }
-
-/* .page caps its own width at the reading measure, so a row inside it can't
-   be wider than that without breaking out of it — there's no wider outer
-   shell to expand into here the way .page-photos gives the gallery. Centers
-   on the viewport regardless of the row's resolved width, so it still
-   centers correctly once max-width caps it below 100vw. */
-.toolbar-row--wide {
-  /* Overrides the base .toolbar-row's space-between: on /photos the button
-     and the reload note read fine pinned to opposite edges, but here the
-     extra width this variant adds is exactly what pushed them apart —
-     center pulls them back next to each other, gap apart, as one unit. */
-  justify-content: center;
-  width: 100vw;
-  max-width: 56rem;
-  margin-left: 50%;
-  transform: translateX(-50%);
-  padding-inline: 1.35rem;
-  box-sizing: border-box;
-}
 
 /* Photo submission form */
 .picked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }

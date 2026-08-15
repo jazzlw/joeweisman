@@ -194,15 +194,6 @@ export async function recordArtifactFiles(
 
   revalidatePath("/admin");
 
-  // Every visitor action lands in contact_log — see subscribe/actions.ts for
-  // the rest of the writers. One row for the whole batch, not per file.
-  await db()`
-    insert into contact_log (type, email, name, detail, count)
-    values ('file', ${mail || null}, ${name || null},
-            ${files.map((f) => f.description.trim()).filter(Boolean).join(" | ") || null},
-            ${saved})
-  `;
-
   after(() =>
     notifyArtifactFiles({
       count: saved,
@@ -270,9 +261,6 @@ export async function recordPhotos(
   const ipHash = hashIp(ip);
 
   let saved = 0;
-  // Grouped by kind so contact_log gets one row per gallery a batch touched —
-  // "a batch off someone's phone is often a mix" of photos and artifacts.
-  const savedByKind = new Map<string, Submission[]>();
   for (const s of submissions) {
     if (!verifyUploadHandle(s.id, s.expiresAt, s.handle)) {
       console.warn("Rejected a photo submission with an invalid handle:", s.id);
@@ -282,7 +270,6 @@ export async function recordPhotos(
       const year = parseYear(s.year);
       const w = plausibleDimension(s.width);
       const h = plausibleDimension(s.height);
-      const kind = parseKind(s.kind);
       await db()`
         insert into photos (submitter, email, caption, storage_ref, status, ip_hash,
                             taken_year, taken_source, kind, width, height)
@@ -290,11 +277,10 @@ export async function recordPhotos(
                 ${s.caption.trim().slice(0, MAX_CAPTION) || null},
                 ${s.id}, 'pending', ${ipHash},
                 ${year}, ${year ? "submitter" : null},
-                ${kind},
+                ${parseKind(s.kind)},
                 ${w && h ? w : null}, ${w && h ? h : null})
       `;
       saved++;
-      savedByKind.set(kind, [...(savedByKind.get(kind) ?? []), s]);
     } catch (e) {
       console.error("Failed to record photo", s.id, e);
     }
@@ -305,18 +291,6 @@ export async function recordPhotos(
   }
 
   revalidatePath("/admin");
-
-  // Every visitor action lands in contact_log — see subscribe/actions.ts for
-  // the rest of the writers. One row per gallery, not per photo: a batch of
-  // twelve is one row with count = 12.
-  for (const [kind, group] of savedByKind) {
-    await db()`
-      insert into contact_log (type, email, name, detail, count)
-      values (${kind}, ${mail || null}, ${name || null},
-              ${group.map((s) => s.caption.trim()).filter(Boolean).join(" | ") || null},
-              ${group.length})
-    `;
-  }
 
   // One email for the whole batch, after the response is sent.
   after(() =>

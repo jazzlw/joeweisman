@@ -11,8 +11,7 @@ const initial: SubscribeState = { status: "idle" };
  *
  * RSVP is the same fields, the same table and the same consent — a signup that
  * also says yes — so it is a flag here rather than a second form to keep in
- * step. Only the wording, the button, a hidden field, and one RSVP-only field
- * (how many are coming) differ.
+ * step. Only the wording, the button, and one hidden field differ.
  */
 export default function SubscribeForm({
   siteKey,
@@ -80,23 +79,6 @@ export default function SubscribeForm({
           <input id="name" name="name" type="text" autoComplete="name" maxLength={120} />
         </div>
 
-        {rsvp && (
-          <div className="field">
-            <label htmlFor="party-size">
-              Number attending <span className="optional">(optional)</span>
-            </label>
-            <input
-              id="party-size"
-              name="partySize"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={50}
-              placeholder="1"
-            />
-          </div>
-        )}
-
         <div className="field">
           <label htmlFor="note">
             {rsvp ? "Anything we should know?" : "How did you know Joe?"}{" "}
@@ -107,7 +89,11 @@ export default function SubscribeForm({
             name="note"
             rows={3}
             maxLength={500}
-            placeholder={rsvp ? "Whether you need a chair near the front — anything useful" : undefined}
+            placeholder={
+              rsvp
+                ? "How many of you are coming, whether you need a chair near the front — anything useful"
+                : undefined
+            }
           />
         </div>
 

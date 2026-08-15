@@ -25,7 +25,7 @@ is in `historic/HISTORY.md`.
 
 ## Data model
 
-Neon Postgres tables, defined by the numbered files in `db/`.
+Four tables in Neon Postgres, defined by the numbered files in `db/`.
 
 **`guestbook_entries`** — publishes immediately (`status: published | removed`).
 There's no moderation queue; Turnstile plus an instant admin email is the
@@ -44,19 +44,9 @@ scans, documents). A separate table rather than a row in `photos`, because
 these have no Cloudflare Images id and no viewable derivative — see "Security
 boundaries" for why nothing in this table is ever served publicly.
 
-**`contacts`** — the mailing list and RSVP headcount, one row per email. A
-repeat submission from the same address updates this row rather than adding
-a second one — `party_size` takes the newest answer, everything else only
-ever fills in what was blank.
-
-**`contact_log`** — an append-only record of every visitor action across the
-whole site: mailing-list signups, RSVPs, photo and artifact submissions,
-non-photo file uploads, guestbook entries. Where `contacts` collapses repeat
-RSVPs into one row per email, `contact_log` is the opposite on purpose — one
-row per submission, so nothing a visitor said is ever silently overwritten.
-`type` distinguishes what kind of action it was; `detail` holds whatever free
-text that action carried (a note, a caption, a message); `count` and
-`party_size` apply only to the types they're relevant for.
+**`contacts`** — the mailing list. No confirmation tokens, no status machine.
+A duplicate signup is swallowed with `on conflict do nothing` rather than
+shown as an error.
 
 **Access:** the browser never touches the database directly. Every read and
 write goes through a Next.js server action or route handler holding the
