@@ -90,7 +90,7 @@ export async function subscribe(
     // rsvp_at keep the opposite behaviour: they only ever fill in what was
     // blank, so the first rsvp_at (when they actually said yes) and an
     // earlier name or note survive a later submission that left them out.
-    // The full note history lives in rsvp_notes regardless of what happens
+    // The full note history lives in contact_log regardless of what happens
     // here.
     //
     // removed_at is deliberately untouched. Someone who asked to be taken off
@@ -105,17 +105,18 @@ export async function subscribe(
         party_size = coalesce(excluded.party_size, contacts.party_size)
     `;
 
-    // A second RSVP from the same address is usually an update — a changed
-    // headcount, a new detail — and the coalesce above only ever fills in
-    // what was blank on `contacts`, so a later note would otherwise vanish
-    // silently instead of overwriting or appending. This is a plain insert,
-    // never an upsert, so every submission survives as its own row.
-    if (rsvp) {
-      await db()`
-        insert into rsvp_notes (email, name, note, party_size)
-        values (${email}, ${name || null}, ${note || null}, ${partySize})
-      `;
-    }
+    // A second submission from the same address is usually an update — a
+    // changed headcount, a new detail — and the coalesce above only ever
+    // fills in what was blank on `contacts`, so a later note would otherwise
+    // vanish silently instead of overwriting or appending. This is a plain
+    // insert, never an upsert, so every submission survives as its own row
+    // in the unified contact_log (mailing-list signups, RSVPs, photo and
+    // file submissions, guestbook entries all land here — see the other
+    // actions.ts files for their own inserts).
+    await db()`
+      insert into contact_log (type, email, name, detail, party_size)
+      values (${rsvp ? "rsvp" : "subscribe"}, ${email}, ${name || null}, ${note || null}, ${partySize})
+    `;
   } catch (e) {
     console.error("Failed to record a contact:", e);
     return {

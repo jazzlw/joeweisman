@@ -260,33 +260,39 @@ export async function exportContactsCsv(): Promise<string> {
 }
 
 /**
- * Every RSVP submission, in order — not just the latest per email.
+ * Every visitor action, in order — a mailing-list signup, an RSVP, a photo or
+ * artifact submission, a non-photo file upload, a guestbook entry.
  *
  * contacts collapses repeat RSVPs from the same address into one row, which
- * is right for a mailing list and wrong for notes: a second submission only
+ * is right for a mailing list and wrong for a log: a second submission only
  * ever filled in what the first left blank, so an updated headcount or a new
- * detail silently didn't show up anywhere. rsvp_notes is a plain log, one row
- * per submission, so this export is where the full history actually lives.
+ * detail silently didn't show up anywhere. contact_log is a plain append-only
+ * record, one row per submission, so this export is where the full history
+ * actually lives — across every form on the site, not just RSVPs.
  */
-export async function exportRsvpNotesCsv(): Promise<string> {
+export async function exportContactLogCsv(): Promise<string> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
 
   const rows = (await db()`
-    select email, name, note, party_size, created_at
-    from rsvp_notes
+    select type, email, name, detail, party_size, count, created_at
+    from contact_log
     order by created_at
   `) as {
-    email: string;
+    type: string;
+    email: string | null;
     name: string | null;
-    note: string | null;
+    detail: string | null;
     party_size: number | null;
+    count: number | null;
     created_at: Date;
   }[];
 
   return [
-    "email,name,note,party_size,created_at",
+    "type,email,name,detail,party_size,count,created_at",
     ...rows.map((r) =>
-      [r.email, r.name, r.note, r.party_size, toPacific(r.created_at)].map(escCsv).join(","),
+      [r.type, r.email, r.name, r.detail, r.party_size, r.count, toPacific(r.created_at)]
+        .map(escCsv)
+        .join(","),
     ),
   ].join("\n");
 }

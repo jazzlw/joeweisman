@@ -13,7 +13,7 @@ import KindEditor from "./kind-editor";
 import FileActions from "./file-actions";
 import { getArtifactFiles, formatBytes } from "@/lib/artifact-files";
 import ExportButton from "./export-button";
-import RsvpNotesExportButton from "./rsvp-notes-export-button";
+import ContactLogExportButton from "./contact-log-export-button";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -91,7 +91,7 @@ export default async function AdminPage() {
       -- didn't answer the question is still at least themselves.
       (select coalesce(sum(coalesce(party_size, 1)), 0)::int
         from contacts where rsvp_at is not null) as attending,
-      (select count(*)::int from rsvp_notes) as rsvp_notes,
+      (select count(*)::int from contact_log) as contact_log,
       (select count(*)::int from guestbook_entries where status = 'published') as published,
       (select count(*)::int from guestbook_entries where status = 'removed') as removed,
       (select count(*)::int from photos where status = 'pending') as photos_pending,
@@ -102,7 +102,7 @@ export default async function AdminPage() {
     contacts: number;
     rsvps: number;
     attending: number;
-    rsvp_notes: number;
+    contact_log: number;
     published: number;
     removed: number;
     photos_pending: number;
@@ -228,7 +228,9 @@ export default async function AdminPage() {
 
       <h2>Mailing list</h2>
       <ExportButton count={counts.contacts} />
-      <RsvpNotesExportButton count={counts.rsvp_notes} />
+
+      <h2>Contact log</h2>
+      <ContactLogExportButton count={counts.contact_log} />
 
       <h2>Photographs</h2>
       {photos.length === 0 ? (
