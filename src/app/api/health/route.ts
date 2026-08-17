@@ -14,27 +14,44 @@ import { db } from "@/lib/db";
  *
  * Deliberately terse: it is public, so it reports whether things work, never
  * why. Detail goes to the logs.
+ *
+ * **The database is only checked when `?deep` is passed, and that matters.**
+ * Neon's free plan gives 100 CU-hours a month and suspends an idle compute after
+ * five minutes, a timeout that cannot be lengthened. Querying Postgres here, on a
+ * URL polled every five minutes, reset that idle timer just before it ever fired
+ * — so the compute never slept, spent 0.25 CU around the clock, and exhausted a
+ * month's allowance in about seventeen days. It did exactly that.
+ *
+ * So: poll the plain URL as often as you like — it touches nothing and costs
+ * nothing. Poll `?deep=1` hourly, which is what actually notices the database is
+ * gone. An hour's delay on that alert is the trade, and it is the right one here:
+ * a broken gallery is not an emergency, and an alert nobody can afford to keep
+ * running is worth less than one that fires late.
  */
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: Request) {
   const isProd = process.env.NODE_ENV === "production";
+  // The database is only touched when asked for. See the note above.
+  const deep = new URL(req.url).searchParams.has("deep");
 
   /** Broken for visitors right now. These decide the status code. */
   const critical: Record<string, boolean> = {};
   /** Working, but something is switched off. Reported, never alerted on. */
   const degraded: Record<string, boolean> = {};
 
-  try {
-    // Cheapest query that proves a real round trip to Postgres, rather than
-    // just a client object being constructed.
-    const rows = (await db()`select 1 as ok`) as { ok: number }[];
-    critical.database = rows[0]?.ok === 1;
-  } catch (e) {
-    console.error("Health check: database unreachable:", e);
-    critical.database = false;
+  if (deep) {
+    try {
+      // Cheapest query that proves a real round trip to Postgres, rather than
+      // just a client object being constructed.
+      const rows = (await db()`select 1 as ok`) as { ok: number }[];
+      critical.database = rows[0]?.ok === 1;
+    } catch (e) {
+      console.error("Health check: database unreachable:", e);
+      critical.database = false;
+    }
   }
 
   // Without the secret, verifyTurnstile fails closed and every form refuses

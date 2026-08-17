@@ -6,8 +6,9 @@ import { imageUrl, thumbUrl, imagesConfigured } from "@/lib/cf-images";
 
 export const metadata: Metadata = { title: ARTIFACTS_LABEL };
 
-// Reads the database per request so a newly approved photo appears immediately.
-export const dynamic = "force-dynamic";
+// Cached, not per-request — approving calls revalidatePath("/artifacts"), so an
+// approved picture still appears at once. See the note on /photos.
+export const revalidate = 60;
 
 export default async function ArtifactsPage() {
   let photos: Awaited<ReturnType<typeof getApprovedPhotos>> = [];

@@ -275,12 +275,31 @@ enough for a five-page site, and every link into a form is a full load anyway.
 
 ### Uptime monitoring
 
-Two monitors, because either alone would miss something:
+Three monitors, and **the intervals matter — one of them costs money if set wrong.**
 
-| Monitor | Watches | Catches |
-|---|---|---|
-| `https://joeweisman.org/api/health` | status code | The **database being unreachable.** The home page is static, so Vercel keeps serving it with a 200 while the guestbook and gallery are broken — a homepage check would report all-clear through the outage that matters most. |
-| `https://joeweisman.org` keyword `Joe Weisman` | page content | A Vercel error page returning 200. Checking for his name means the alert fires when the page is *wrong*, not merely reachable. |
+| Monitor | Interval | Watches | Catches |
+|---|---|---|---|
+| `https://joeweisman.org/api/health` | 5 min | status code | The app being down, or Turnstile's secret missing in production, which makes every form refuse submissions. Touches no database. |
+| `https://joeweisman.org` keyword `Joe Weisman` | 5 min | page content | A Vercel error page returning 200. Checking for his name means the alert fires when the page is *wrong*, not merely reachable. |
+| `https://joeweisman.org/api/health?deep=1` | **60 min, never faster** | status code | The **database being unreachable.** The home page is static, so Vercel keeps serving it with a 200 while the guestbook and gallery are broken — a homepage check would report all-clear through the outage that matters most. |
+
+> ### ⚠ Never poll `?deep=1` every five minutes
+>
+> That is what exhausted the database in August 2026, and it is an easy mistake to
+> repeat because it looks like diligence.
+>
+> Neon's free plan allows **100 CU-hours a month** and suspends an idle compute
+> after **five minutes** — a timeout that cannot be lengthened on that plan. The
+> deep check queries Postgres, so polling it every five minutes reset the idle
+> timer just before it ever fired. The compute never slept, drew 0.25 CU around
+> the clock, and burned the month's allowance in about **17 days**. The graph was
+> a flat line at 0.25 CU with a single dip in 24 hours.
+>
+> At hourly, each check wakes the compute for five minutes: about 2 hours a day,
+> roughly **15 CU-hours a month**. The cost of the slower interval is that a
+> database outage is noticed within an hour rather than five minutes, which is the
+> right trade — a broken gallery is not an emergency, and an alert that cannot be
+> afforded is worth less than one that fires late.
 
 `/api/health` returns 503 only for a real visitor-facing outage — the database being down,
 or Turnstile's secret missing in production, which makes every form refuse submissions.

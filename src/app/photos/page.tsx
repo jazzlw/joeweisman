@@ -7,8 +7,14 @@ import { imageUrl, thumbUrl, imagesConfigured } from "@/lib/cf-images";
 
 export const metadata: Metadata = { title: "Photographs" };
 
-// Reads the database per request so a newly approved photo appears immediately.
-export const dynamic = "force-dynamic";
+// Cached, not per-request. Approving a photo calls revalidatePath("/photos"),
+// so it still appears the moment it is approved — the window here is only a
+// backstop for anything that changes outside that path.
+//
+// Per-request meant a Postgres round trip for every visitor, and this page is
+// the one a few hundred people open at once when the email goes out. Neon bills
+// by the time the compute is awake.
+export const revalidate = 60;
 
 export default async function PhotosPage() {
   let photos: Awaited<ReturnType<typeof getApprovedPhotos>> = [];

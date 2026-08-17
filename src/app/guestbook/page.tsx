@@ -4,8 +4,14 @@ import { getPublishedEntries, formatDate, PAGE_SIZE } from "@/lib/guestbook";
 
 export const metadata: Metadata = { title: "Guestbook" };
 
-// Reads the database on every request. Someone who has just written a tribute
-// should see it, not a cached page from before they arrived.
+// Stays per-request, unlike /photos and /artifacts, and not by choice: this page
+// reads searchParams for pagination, which makes it dynamic whatever revalidate
+// says. Caching it would mean moving pages into the path (/guestbook/2), which
+// changes URLs people may already have.
+//
+// Accepted for now because it is the quieter of the two: the gallery is what a
+// few hundred people open at once from an email. If Neon usage is still high
+// after the other changes, this is the next thing to look at.
 export const dynamic = "force-dynamic";
 
 export default async function GuestbookPage({
