@@ -10,7 +10,8 @@
     "migrate": "node scripts/migrate.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.mts",
     "archive": "node scripts/archive.mjs",
-    "dimensions": "node --experimental-strip-types scripts/dimensions.mjs"
+    "dimensions": "node --experimental-strip-types scripts/dimensions.mjs",
+    "qr": "node scripts/qr.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -27,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "qrcode": "^1.5.4",
     "typescript": "^5"
   },
   "overrides": {
