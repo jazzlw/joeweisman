@@ -73,6 +73,13 @@ export async function signGuestbook(
       insert into guestbook_entries (name, message, email, ip_hash, status)
       values (${name}, ${message}, ${email || null}, ${ipHash}, 'published')
     `;
+
+    // Every visitor action lands in contact_log, not just mailing-list and
+    // RSVP signups — see subscribe/actions.ts for the rest of the writers.
+    await db()`
+      insert into contact_log (type, email, name, detail)
+      values ('guestbook', ${email || null}, ${name}, ${message})
+    `;
   } catch (e) {
     console.error("Failed to record a guestbook entry:", e);
     return {

@@ -193,11 +193,40 @@ export async function purgeArtifactFile(id: string): Promise<void> {
   revalidatePath("/admin");
 }
 
+/**
+ * Format a timestamp in Pacific time, e.g. "2026-08-13 6:25 PM PDT".
+ *
+ * The database stores UTC and a raw `toISOString()` used to go straight into
+ * the CSV — technically correct, but a timestamp near midnight UTC lands on
+ * the *previous* calendar day in Pacific, which is confusing enough that it
+ * looks like a bug. `Intl.DateTimeFormat` handles the PST/PDT switch itself,
+ * so this needs no extra dependency and no manual daylight-saving logic.
+ */
+function toPacific(d: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${get("dayPeriod")} ${get("timeZoneName")}`;
+}
+
+function escCsv(v: unknown): string {
+  const s = v == null ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 export async function exportContactsCsv(): Promise<string> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
 
   const rows = (await db()`
-    select email, name, note, created_at, rsvp_at
+    select email, name, note, created_at, rsvp_at, party_size
     from contacts
     where removed_at is null
     order by created_at
@@ -207,27 +236,62 @@ export async function exportContactsCsv(): Promise<string> {
     note: string | null;
     created_at: Date;
     rsvp_at: Date | null;
+    party_size: number | null;
   }[];
 
-  const esc = (v: unknown) => {
-    const s = v == null ? "" : String(v);
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-
   // rsvp as a plain yes/no as well as the timestamp: the column gets sorted and
-  // filtered in a spreadsheet, and "yes" does that job where an ISO date does not.
+  // filtered in a spreadsheet, and "yes" does that job where a timestamp does not.
   return [
-    "email,name,note,created_at,rsvp,rsvp_at",
+    "email,name,note,created_at,rsvp,rsvp_at,party_size",
     ...rows.map((r) =>
       [
         r.email,
         r.name,
         r.note,
-        r.created_at.toISOString(),
+        toPacific(r.created_at),
         r.rsvp_at ? "yes" : "no",
-        r.rsvp_at ? r.rsvp_at.toISOString() : "",
+        r.rsvp_at ? toPacific(r.rsvp_at) : "",
+        r.party_size,
       ]
-        .map(esc)
+        .map(escCsv)
+        .join(","),
+    ),
+  ].join("\n");
+}
+
+/**
+ * Every visitor action, in order — a mailing-list signup, an RSVP, a photo or
+ * artifact submission, a non-photo file upload, a guestbook entry.
+ *
+ * contacts collapses repeat RSVPs from the same address into one row, which
+ * is right for a mailing list and wrong for a log: a second submission only
+ * ever filled in what the first left blank, so an updated headcount or a new
+ * detail silently didn't show up anywhere. contact_log is a plain append-only
+ * record, one row per submission, so this export is where the full history
+ * actually lives — across every form on the site, not just RSVPs.
+ */
+export async function exportContactLogCsv(): Promise<string> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  const rows = (await db()`
+    select type, email, name, detail, party_size, count, created_at
+    from contact_log
+    order by created_at
+  `) as {
+    type: string;
+    email: string | null;
+    name: string | null;
+    detail: string | null;
+    party_size: number | null;
+    count: number | null;
+    created_at: Date;
+  }[];
+
+  return [
+    "type,email,name,detail,party_size,count,created_at",
+    ...rows.map((r) =>
+      [r.type, r.email, r.name, r.detail, r.party_size, r.count, toPacific(r.created_at)]
+        .map(escCsv)
         .join(","),
     ),
   ].join("\n");
