@@ -11,7 +11,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.mts",
     "archive": "node scripts/archive.mjs",
     "dimensions": "node --experimental-strip-types scripts/dimensions.mjs",
-    "qr": "node scripts/qr.mjs"
+    "qr": "node scripts/qr.mjs",
+    "rsvp": "node scripts/rsvp.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

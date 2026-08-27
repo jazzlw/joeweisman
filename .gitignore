@@ -48,3 +48,13 @@ next-env.d.ts
 
 # From Luke repo
 historic/jazz_email_instructions_to_luke.md
+# Mailing-list and RSVP exports. Real names and email addresses, and this
+# repository is public — a stray `git add .` would publish every mourner's
+# address. Downloaded from /admin, read with `npm run rsvp`, never committed.
+/exports/
+
+# Design working files for printed material. Large binaries that would sit in
+# git history forever, and the kind of file that quietly carries embedded images
+# or a recipient list. Back these up with the photo originals instead.
+/invitation/
+*.ai
