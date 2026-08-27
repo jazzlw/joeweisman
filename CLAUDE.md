@@ -171,6 +171,37 @@ no Tailwind, no CSS-in-JS (`AGENTS.md`). Fonts are committed `.woff2` files load
 via `next/font/local` in `src/app/fonts.ts`, never `next/font/google` (that fetches
 at build time, a year-three failure mode `ARCHITECTURE.md` → "Design system" explains).
 
+## What must never be committed
+
+**This repository is public, and git history cannot be taken back.** Removing a
+file in a later commit does not remove it from history — the forwarded-email
+recipe needed the file scrubbed *and* render-time backstops in `recipes.ts`,
+because the original was already out there.
+
+Never commit, in any file:
+
+- **Exports.** `/exports/` and any downloaded CSV. Real names and email
+  addresses. Read them with `npm run rsvp`, which goes to the database instead.
+- **Anything a visitor submitted** — a guestbook entry, an RSVP note, a photo
+  caption, a submitter's name — outside the database it already lives in.
+- **Secrets.** `.env.local`. `.env.example` is the committed template.
+- **Design working files.** `/invitation/`, `*.ai`. Large binaries that sit in
+  history forever, and the kind of file that quietly embeds a recipient list.
+
+**The rule extends to code comments and commit messages, which is where it
+actually goes wrong.** A good comment explains *why*, and the most convincing
+why is a real example — so quoting four people's RSVP notes to justify why
+`scripts/rsvp.mjs` does not pattern-match the notes column felt like careful
+documentation. One of them named a living relative. It was caught by being asked
+"what becomes public?" before the commit, not by anything automatic.
+
+Make the argument in the abstract instead: "most people use 'we' to describe how
+they knew Joe, in the past tense" carries the same reasoning and quotes nobody.
+If a real example seems necessary, invent one.
+
+Before committing anything that touched submitted data, grep the staged diff for
+names and addresses. `git diff --cached` is the last point at which this is free.
+
 ## Git commits
 
 - **Run `git pull --ff-only origin main` before you edit anything. Not `fetch` —
