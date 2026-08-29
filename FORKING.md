@@ -124,7 +124,13 @@ asking over guessing when something below is ambiguous for their situation.
      contrast in both light and dark mode before committing to one — see the
      note in `AGENTS.md`.
    - `content/how-to-make-this.md` — this page is about *us* making this for
-     Joe. Rewrite it or drop it, along with its link in `src/app/footer.tsx`.
+     Joe. Simplest: replace it with the provided
+     `content/how-to-make-this-fork-template.md` — copy its contents over
+     `how-to-make-this.md` (or delete the old file and rename the template),
+     and delete the template file afterward. It's already written to work for
+     anyone forking this, crediting Jazz, Luke, and Joe as the source. Rewrite
+     it further with your own story if you'd rather, or drop it entirely
+     along with its link in `src/app/footer.tsx`.
    - `PLAN.md` — Joe-specific to-dos (a photo deadline, a QR code for his
      program). Not code, safe to ignore, delete, or replace with your own.
    - `content/recipes/` — remove this section and its nav entry
