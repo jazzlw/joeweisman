@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/guestbook";
 import { isAdmin } from "@/lib/admin-auth";
@@ -228,6 +229,11 @@ export default async function AdminPage() {
 
       <h2>Mailing list</h2>
       <ExportButton count={counts.contacts} />
+      <p className="jump-note">
+        <Link href="/admin/contact" className="btn-quiet">
+          Edit contacts
+        </Link>
+      </p>
 
       <h2>Contact log</h2>
       <ContactLogExportButton count={counts.contact_log} />

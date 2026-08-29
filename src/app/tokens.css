@@ -480,6 +480,39 @@ body {
 .mod-photo.is-rejected { opacity: .5; }
 .photo-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
 
+/* The contacts grid at /admin/contact. Wide content that scrolls in its own
+   box rather than widening the page, since seven columns won't fit a phone
+   screen no matter how the page itself is sized. */
+.table-scroll { overflow-x: auto; margin-top: var(--s3); }
+.contact-table { border-collapse: collapse; width: 100%; font-size: var(--size-small); }
+.contact-table th, .contact-table td {
+  padding: .5rem .6rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.contact-table th { font-weight: 600; color: var(--muted); }
+.contact-email { overflow-wrap: anywhere; white-space: normal; }
+
+/* One editable cell — name, note, admin note, or party size. Same shape as
+   .mod-caption-row/.mod-caption-input, duplicated rather than shared: those
+   are specifically the photo caption editor's, and renaming them to be
+   generic would touch code this didn't need to. */
+.field-editor-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; white-space: normal; }
+.field-editor-value { overflow-wrap: anywhere; }
+.field-editor-empty { color: var(--muted); font-style: italic; }
+.field-editor-input {
+  flex: 1 1 8rem;
+  font-family: var(--body);
+  font-size: var(--size-small);
+  color: var(--text);
+  background: var(--bg-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: .3rem .5rem;
+}
+
 .tag-pending { color: var(--todo); }
 .tag-approved { color: var(--muted); }
 .tag-rejected { color: var(--muted); }

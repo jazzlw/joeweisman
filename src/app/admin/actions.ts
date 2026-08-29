@@ -193,6 +193,79 @@ export async function purgeArtifactFile(id: string): Promise<void> {
   revalidatePath("/admin");
 }
 
+const MAX_CONTACT_NAME = 120;
+const MAX_CONTACT_NOTE = 500;
+const MAX_PARTY_SIZE = 50;
+
+/** Edit a contact's name. */
+export async function setContactName(id: string, name: string): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  const trimmed = name.trim().slice(0, MAX_CONTACT_NAME);
+  await db()`update contacts set name = ${trimmed || null} where id = ${id}::uuid`;
+  revalidatePath("/admin/contact");
+}
+
+/**
+ * Edit what the contact themselves said, by hand.
+ *
+ * Safe to overwrite: the original submission survives forever in
+ * contact_log regardless of what this does to the row in contacts.
+ */
+export async function setContactNote(id: string, note: string): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  const trimmed = note.trim().slice(0, MAX_CONTACT_NOTE);
+  await db()`update contacts set note = ${trimmed || null} where id = ${id}::uuid`;
+  revalidatePath("/admin/contact");
+}
+
+/** An admin-only annotation. Never shown publicly, never fed into contact_log. */
+export async function setContactAdminNote(id: string, note: string): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  const trimmed = note.trim().slice(0, MAX_CONTACT_NOTE);
+  await db()`update contacts set admin_note = ${trimmed || null} where id = ${id}::uuid`;
+  revalidatePath("/admin/contact");
+}
+
+/** How many people this RSVP covers. Feeds the "Total attending" count on /admin. */
+export async function setContactPartySize(id: string, partySize: string): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  let parsed: number | null = null;
+  if (partySize.trim() !== "") {
+    const n = Number.parseInt(partySize, 10);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_PARTY_SIZE) {
+      throw new Error(`Number attending should be between 1 and ${MAX_PARTY_SIZE}.`);
+    }
+    parsed = n;
+  }
+  await db()`update contacts set party_size = ${parsed} where id = ${id}::uuid`;
+  revalidatePath("/admin/contact");
+  revalidatePath("/admin");
+}
+
+/**
+ * Toggle whether a contact has RSVP'd.
+ *
+ * Checking it sets rsvp_at to now() only the first time — coalesce, not
+ * overwrite, so correcting a mistaken checkbox doesn't erase when they
+ * actually said yes. Unchecking always clears it; there's nothing worth
+ * keeping about a "no."
+ */
+export async function setContactRsvp(id: string, rsvp: boolean): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  await db()`
+    update contacts
+    set rsvp_at = case when ${rsvp} then coalesce(rsvp_at, now()) else null end
+    where id = ${id}::uuid
+  `;
+  revalidatePath("/admin/contact");
+  revalidatePath("/admin");
+}
+
 /**
  * Format a timestamp in Pacific time, e.g. "2026-08-13 6:25 PM PDT".
  *
@@ -226,7 +299,7 @@ export async function exportContactsCsv(): Promise<string> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
 
   const rows = (await db()`
-    select email, name, note, created_at, rsvp_at, party_size
+    select email, name, note, admin_note, created_at, rsvp_at, party_size
     from contacts
     where removed_at is null
     order by created_at
@@ -234,6 +307,7 @@ export async function exportContactsCsv(): Promise<string> {
     email: string;
     name: string | null;
     note: string | null;
+    admin_note: string | null;
     created_at: Date;
     rsvp_at: Date | null;
     party_size: number | null;
@@ -242,12 +316,13 @@ export async function exportContactsCsv(): Promise<string> {
   // rsvp as a plain yes/no as well as the timestamp: the column gets sorted and
   // filtered in a spreadsheet, and "yes" does that job where a timestamp does not.
   return [
-    "email,name,note,created_at,rsvp,rsvp_at,party_size",
+    "email,name,note,admin_note,created_at,rsvp,rsvp_at,party_size",
     ...rows.map((r) =>
       [
         r.email,
         r.name,
         r.note,
+        r.admin_note,
         toPacific(r.created_at),
         r.rsvp_at ? "yes" : "no",
         r.rsvp_at ? toPacific(r.rsvp_at) : "",
