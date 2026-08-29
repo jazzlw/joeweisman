@@ -42,6 +42,64 @@ function yearWorthShowing(year: number | null, caption: string | null): number |
   return year;
 }
 
+/** Only a link to one of these can ever come from a caption — see renderCaption(). */
+const TRUSTED_LINK_HOSTS = ["https://youtu.be/", "https://www.youtube.com/", "https://youtube.com/"];
+
+/**
+ * A caption may contain one hand-typed `[label](url)` link — nothing else,
+ * and only to an unlisted YouTube video (the odd curated case that doesn't
+ * fit the photo pipeline: a short video someone sent in). Restricted to
+ * YouTube's own domains so a visitor's own caption text can never become a
+ * link to somewhere else; the one pattern this recognizes is deliberately
+ * narrow.
+ *
+ * A plain string is returned unchanged — most captions have no link in them.
+ */
+function renderCaption(caption: string): React.ReactNode {
+  const match = caption.match(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/);
+  if (!match || match.index === undefined) return caption;
+
+  const [full, label, url] = match;
+  if (!TRUSTED_LINK_HOSTS.some((host) => url.startsWith(host))) return caption;
+
+  const before = caption.slice(0, match.index);
+  const after = caption.slice(match.index + full.length);
+  return (
+    <>
+      {before}
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        {label}
+      </a>
+      {after}
+    </>
+  );
+}
+
+/** A caption, with its year/credit line — used for both the grid and the lightbox. */
+function Caption({
+  caption,
+  submitter,
+  year,
+  className,
+}: {
+  caption: string | null;
+  submitter: string | null;
+  year: number | null;
+  className: string;
+}) {
+  const yr = yearWorthShowing(year, caption);
+  if (!caption && !submitter && !yr) return null;
+  return (
+    <p className={className}>
+      {caption && renderCaption(caption)}
+      {caption && (submitter || yr) && " "}
+      {yr && <span className="photo-year">{yr}</span>}
+      {yr && submitter && " "}
+      {submitter && <span className="credit">&mdash; {submitter}</span>}
+    </p>
+  );
+}
+
 export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -98,19 +156,7 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.thumb} alt={p.caption ?? "A photograph of Joe Weisman"} loading="lazy" decoding="async" />
             </button>
-            {(() => {
-              const yr = yearWorthShowing(p.year, p.caption);
-              if (!p.caption && !p.submitter && !yr) return null;
-              return (
-                <p className="gallery-caption">
-                  {p.caption}
-                  {p.caption && (p.submitter || yr) && " "}
-                  {yr && <span className="photo-year">{yr}</span>}
-                  {yr && p.submitter && " "}
-                  {p.submitter && <span className="credit">&mdash; {p.submitter}</span>}
-                </p>
-              );
-            })()}
+            <Caption caption={p.caption} submitter={p.submitter} year={p.year} className="gallery-caption" />
           </li>
         ))}
       </ul>
@@ -155,19 +201,7 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
               </button>
             </div>
 
-            {(() => {
-              const yr = yearWorthShowing(current.year, current.caption);
-              if (!current.caption && !current.submitter && !yr) return null;
-              return (
-                <p className="lightbox-caption">
-                  {current.caption}
-                  {current.caption && (current.submitter || yr) && " "}
-                  {yr && <span className="photo-year">{yr}</span>}
-                  {yr && current.submitter && " "}
-                  {current.submitter && <span className="credit">&mdash; {current.submitter}</span>}
-                </p>
-              );
-            })()}
+            <Caption caption={current.caption} submitter={current.submitter} year={current.year} className="lightbox-caption" />
 
             <button type="button" className="lightbox-close btn-quiet" onClick={close}>
               Close
