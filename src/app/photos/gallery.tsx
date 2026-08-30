@@ -138,12 +138,25 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (openIndex === null) return;
-      if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
-      if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+      // Arrow keys page through the open photo's own stack first, only
+      // moving to the next/previous photo once already at the near/far end
+      // of it — so a stack reads as a run of frames on the same filmstrip
+      // rather than the arrow keys skipping straight past it.
+      const framesLength = 1 + photos[openIndex].stack.length;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (stackIndex < framesLength - 1) setStackIndex((n) => n + 1);
+        else step(1);
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (stackIndex > 0) setStackIndex((n) => n - 1);
+        else step(-1);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openIndex, step]);
+  }, [openIndex, stackIndex, photos, step]);
 
   const current = openIndex === null ? null : photos[openIndex];
   // The head plus the rest of its stack, so stackIndex just indexes into one flat list.
