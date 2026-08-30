@@ -122,11 +122,16 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
       setOpenIndex((i) => {
         if (i === null) return i;
         const next = i + delta;
-        return next < 0 || next >= photos.length ? i : next;
+        if (next < 0 || next >= photos.length) return i;
+        // Moving forward lands on the new photo's first frame; moving
+        // backward lands on its last, so leaving a stack in either
+        // direction reads as landing on the near edge of the next one
+        // rather than always snapping back to frame zero.
+        setStackIndex(delta < 0 ? photos[next].stack.length : 0);
+        return next;
       });
-      setStackIndex(0);
     },
-    [photos.length],
+    [photos],
   );
 
   useEffect(() => {
