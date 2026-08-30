@@ -191,6 +191,13 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.thumb} alt={p.caption ?? "A photograph of Joe Weisman"} loading="lazy" decoding="async" />
+              {p.stack.length > 0 && (
+                // aria-hidden: the button's own aria-label already says how
+                // many images are in the stack; this is a visual nudge only.
+                <span className="gallery-stack-hint" aria-hidden="true">
+                  click photo for more images
+                </span>
+              )}
             </button>
             <Caption caption={p.caption} submitter={p.submitter} year={p.year} className="gallery-caption" />
           </li>
