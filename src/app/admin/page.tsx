@@ -11,7 +11,7 @@ import PhotoActions from "./photo-actions";
 import CaptionEditor from "./caption-editor";
 import YearEditor from "./year-editor";
 import KindEditor from "./kind-editor";
-import StackLinkToggle from "./stack-link-toggle";
+import StackLinkPicker from "./stack-link-picker";
 import FileActions from "./file-actions";
 import { getArtifactFiles, formatBytes } from "@/lib/artifact-files";
 import ExportButton from "./export-button";
@@ -246,10 +246,13 @@ export default async function AdminPage() {
       ) : (
         <div className="mod-grid">
           {photos.map((p, i) => {
-            // Whatever's shown right above this one on the page right now —
-            // see StackLinkToggle and setStackPrev for why "prior" means this
-            // and not something recomputed from a stored order.
-            const priorId = i > 0 ? photos[i - 1].id : null;
+            // Candidate photo ids at each offset from this row, on the page
+            // right now — see StackLinkPicker and setStackPrev for why this
+            // is computed from rendered position, not a stored order. Order
+            // matches StackLinkPicker's OFFSETS: -3, -2, -1, 0 (unused), 1, 2, 3.
+            const candidates = [-3, -2, -1, 0, 1, 2, 3].map((offset) =>
+              offset === 0 ? null : (photos[i + offset]?.id ?? null),
+            );
             return (
               <figure key={p.id} className={`mod-photo is-${p.status}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -270,7 +273,7 @@ export default async function AdminPage() {
                     source={p.taken_source}
                     exifTakenAt={p.exif_taken_at}
                   />
-                  <StackLinkToggle id={p.id} priorId={priorId} linked={p.stack_prev_id === priorId} />
+                  <StackLinkPicker id={p.id} stackPrevId={p.stack_prev_id} candidates={candidates} />
                   <span className="mod-meta">
                     {p.submitter ?? "anonymous"}
                     {p.email && <> &middot; {p.email}</>}
