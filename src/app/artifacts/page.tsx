@@ -34,8 +34,8 @@ export default async function ArtifactsPage() {
 
       <p className="prose">
         Things Joe made, marked, or kept &mdash; the saunas and fish ponds and
-        improved kitchens, the annotated recipes, the block-print hand that was
-        unmistakably his.
+        improved kitchens, the annotated recipes, the block-print handwriting
+        that was unmistakably his.
       </p>
 
       <div className="toolbar-row">
