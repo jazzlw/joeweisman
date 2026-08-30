@@ -504,15 +504,26 @@ body {
   white-space: nowrap;
 }
 .contact-table th { font-weight: 600; color: var(--muted); }
-.contact-email { overflow-wrap: anywhere; white-space: normal; }
+/* .contact-table td's own white-space: nowrap (above) beats a plain single
+   class on specificity — one class plus the td type selector outranks one
+   class alone — so overriding it back to normal needs the same td type
+   selector too, or it silently loses and stays nowrap. */
+.contact-table td.contact-email { overflow-wrap: anywhere; white-space: normal; }
 /* Note and admin note run long — wrap them to a fixed width instead of
    letting them push the table wider than the other columns need. */
-.contact-notes-col { white-space: normal; }
+.contact-table td.contact-notes-col { white-space: normal; }
 .contact-notes-col .field-editor-row { align-items: flex-start; }
+/* white-space: normal is repeated here, direct on the element that actually
+   needs to wrap, rather than trusting it to inherit correctly from the td. */
 /* min-width: 0 overrides the flex item default of min-width: auto, which
    otherwise refuses to shrink below the text's own natural width — without
    it max-width has no effect and the text overflows instead of wrapping. */
-.contact-notes-col .field-editor-value { max-width: 20ch; min-width: 0; overflow-wrap: break-word; }
+.contact-notes-col .field-editor-value {
+  white-space: normal;
+  max-width: 20ch;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
 
 /* One editable cell — name, note, admin note, or party size. Same shape as
    .mod-caption-row/.mod-caption-input, duplicated rather than shared: those
