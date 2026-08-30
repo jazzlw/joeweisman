@@ -509,7 +509,10 @@ body {
    letting them push the table wider than the other columns need. */
 .contact-notes-col { white-space: normal; }
 .contact-notes-col .field-editor-row { align-items: flex-start; }
-.contact-notes-col .field-editor-value { max-width: 20ch; overflow-wrap: break-word; }
+/* min-width: 0 overrides the flex item default of min-width: auto, which
+   otherwise refuses to shrink below the text's own natural width — without
+   it max-width has no effect and the text overflows instead of wrapping. */
+.contact-notes-col .field-editor-value { max-width: 20ch; min-width: 0; overflow-wrap: break-word; }
 
 /* One editable cell — name, note, admin note, or party size. Same shape as
    .mod-caption-row/.mod-caption-input, duplicated rather than shared: those
