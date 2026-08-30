@@ -104,6 +104,24 @@ export async function setPhotoCaption(id: string, caption: string): Promise<void
 }
 
 /**
+ * Turn a photograph that arrived sideways.
+ *
+ * Some come in with the pixels themselves rotated rather than tagged with an
+ * orientation, so nothing can be read and corrected automatically — somebody has
+ * to look and say which way is up.
+ *
+ * Stores degrees clockwise and normalises, so pressing the button four times
+ * returns to where it started rather than failing a check constraint.
+ */
+export async function setPhotoRotation(id: string, rotation: number): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+
+  const normalised = ((Math.round(rotation / 90) * 90) % 360 + 360) % 360;
+  await db()`update photos set rotation = ${normalised} where id = ${id}::uuid`;
+  revalidateGalleries();
+}
+
+/**
  * Move a photograph between the two galleries.
  *
  * Submitters mark this themselves, and get it wrong in both directions — a

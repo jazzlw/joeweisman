@@ -75,10 +75,16 @@ export default async function PhotosPage() {
             caption: p.caption,
             submitter: p.submitter,
             year: p.taken_year,
+            rotation: p.rotation,
+            width: p.width,
+            height: p.height,
             stack: p.stack.map((s) => ({
               thumb: thumbUrl(s.storage_ref),
               full: imageUrl(s.storage_ref),
               caption: s.caption,
+              rotation: s.rotation,
+              width: s.width,
+              height: s.height,
             })),
           }))}
         />

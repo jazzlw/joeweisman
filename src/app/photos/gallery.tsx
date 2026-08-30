@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Rotatable from "../rotatable";
 
 /** One image in a stack — the head itself, or one it continues to. */
 export type GalleryImage = {
   thumb: string;
   full: string;
   caption: string | null;
+  /** Degrees clockwise to turn it. 0 for almost everything. */
+  rotation: number;
+  /** Stored pixel size; a quarter turn needs them to swap the footprint. */
+  width: number | null;
+  height: number | null;
 };
 
 export type GalleryPhoto = GalleryImage & {
@@ -189,8 +195,15 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
                     : "Enlarge photograph"
               }
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.thumb} alt={p.caption ?? "A photograph of Joe Weisman"} loading="lazy" decoding="async" />
+              <Rotatable
+                src={p.thumb}
+                alt={p.caption ?? "A photograph of Joe Weisman"}
+                rotation={p.rotation}
+                width={p.width}
+                height={p.height}
+                loading="lazy"
+                decoding="async"
+              />
               {p.stack.length > 0 && (
                 // aria-hidden: the button's own aria-label already says how
                 // many images are in the stack; this is a visual nudge only.
@@ -219,8 +232,13 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
       >
         {current && frame && (
           <div className="lightbox-inner">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={frame.full} alt={frame.caption ?? "A photograph of Joe Weisman"} />
+            <Rotatable
+              src={frame.full}
+              alt={frame.caption ?? "A photograph of Joe Weisman"}
+              rotation={frame.rotation}
+              width={frame.width}
+              height={frame.height}
+            />
 
             {current.stack.length > 0 && (
               <div className="lightbox-bar">

@@ -677,6 +677,54 @@ mark.todo {
   cursor: zoom-in;
 }
 .gallery-item img { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+
+/* ---- Turning a photograph that arrived sideways ----
+   Applied here rather than by Cloudflare on delivery: rotating there needs
+   flexible variants, which would also let anyone read every photograph's EXIF,
+   and a third of the originals carry GPS coordinates. See cf-images.ts.
+
+   90° and 270° swap the picture's proportions, so the wrapper takes the
+   *rotated* footprint and the image is sized against it:
+
+     wrapper height = wrapper width x (w/h)      [from aspect-ratio below]
+     image width    = wrapper width x (w/h)      [so it equals wrapper height]
+
+   Rotating a quarter turn then makes the image's visual width its old height
+   (= wrapper width) and its visual height its old width (= wrapper height), so
+   it fills the wrapper exactly with nothing cropped and nothing overflowing.
+   --w and --h are the stored pixel dimensions, set inline per photo.
+
+   Doubled class selectors (.rot.rot-90) on purpose: `.lightbox-inner img` sizes
+   the enlarged view and has the same specificity as a single class plus an
+   element, so it would win on source order alone and the turned image would be
+   laid out as though it hadn't moved. */
+.rot { display: block; position: relative; width: 100%; overflow: hidden; }
+.rot > img { display: block; }
+
+/* 180° needs none of that — the footprint is unchanged. */
+.rot.rot-180 > img { transform: rotate(180deg); }
+
+.rot.rot-90, .rot.rot-270 { aspect-ratio: var(--h) / var(--w); }
+.rot.rot-90 > img,
+.rot.rot-270 > img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% * var(--w) / var(--h));
+  height: auto;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
+}
+.rot.rot-90  > img { transform: translate(-50%, -50%) rotate(90deg); }
+.rot.rot-270 > img { transform: translate(-50%, -50%) rotate(270deg); }
+
+/* In the lightbox the panel is bounded by the viewport rather than by a grid
+   column, so the wrapper is sized from its height and lets the aspect ratio
+   give the width, instead of filling the panel and being cropped. */
+.lightbox-inner > .rot { width: auto; max-width: 100%; margin-inline: auto; }
+.lightbox-inner > .rot.rot-90,
+.lightbox-inner > .rot.rot-270 { height: min(82vh, calc(96vh - 8rem)); }
 .gallery-item:hover { border-color: var(--muted); }
 .gallery-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 

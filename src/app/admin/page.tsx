@@ -11,6 +11,8 @@ import PhotoActions from "./photo-actions";
 import CaptionEditor from "./caption-editor";
 import YearEditor from "./year-editor";
 import KindEditor from "./kind-editor";
+import RotateButton from "./rotate-button";
+import Rotatable from "../rotatable";
 import StackLinkPicker from "./stack-link-picker";
 import FileActions from "./file-actions";
 import { getArtifactFiles, formatBytes } from "@/lib/artifact-files";
@@ -117,7 +119,7 @@ export default async function AdminPage() {
   // had just arrived at the bottom of a long page.
   const photos = (await db()`
     select id, storage_ref, caption, submitter, email, status, created_at, archived_at,
-           taken_year, taken_source, exif_taken_at, kind, width, height, stack_prev_id
+           taken_year, taken_source, exif_taken_at, kind, width, height, stack_prev_id, rotation
     from photos
     order by (status = 'pending') desc, created_at desc
     limit 200
@@ -137,6 +139,7 @@ export default async function AdminPage() {
     width: number | null;
     height: number | null;
     stack_prev_id: string | null;
+    rotation: number;
   }[];
 
   // A failure here shouldn't cost the whole admin page — photos and the
@@ -255,8 +258,15 @@ export default async function AdminPage() {
             );
             return (
               <figure key={p.id} className={`mod-photo is-${p.status}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={thumbUrl(p.storage_ref)} alt={p.caption ?? "Submitted photograph"} loading="lazy" />
+                {/* The no-img-element exemption lives inside Rotatable now. */}
+                <Rotatable
+                  src={thumbUrl(p.storage_ref)}
+                  alt={p.caption ?? "Submitted photograph"}
+                  rotation={p.rotation}
+                  width={p.width}
+                  height={p.height}
+                  loading="lazy"
+                />
                 <figcaption>
                   <span className={`tag tag-${p.status}`}>{p.status}</span>
                   {p.status === "approved" && !p.archived_at && (
@@ -267,6 +277,7 @@ export default async function AdminPage() {
                   )}
                   <CaptionEditor id={p.id} caption={p.caption} />
                   <KindEditor id={p.id} kind={p.kind} />
+                  <RotateButton id={p.id} rotation={p.rotation} />
                   <YearEditor
                     id={p.id}
                     year={p.taken_year}

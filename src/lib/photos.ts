@@ -25,6 +25,11 @@ export type Photo = {
   taken_year: number | null;
   kind: PhotoKind;
   stack_prev_id: string | null;
+  /** Degrees clockwise to turn it before showing. 0 for almost everything. */
+  rotation: number;
+  /** Pixel size. Needed to swap the footprint when a photo is turned a quarter. */
+  width: number | null;
+  height: number | null;
 };
 
 export type PendingPhoto = Photo & { email: string | null; status: string };
@@ -61,7 +66,8 @@ export type GalleryEntry = Photo & { stack: Photo[] };
  */
 export async function getApprovedPhotos(kind: PhotoKind): Promise<GalleryEntry[]> {
   const rows = (await db()`
-    select id, storage_ref, caption, submitter, created_at, taken_year, kind, stack_prev_id
+    select id, storage_ref, caption, submitter, created_at, taken_year, kind, stack_prev_id,
+           rotation, width, height
     from photos
     where status = 'approved' and kind = ${kind}
     order by sort_order nulls last, created_at desc
@@ -91,7 +97,7 @@ export async function getApprovedPhotos(kind: PhotoKind): Promise<GalleryEntry[]
 /** Everything awaiting review, oldest first so nothing sits forgotten. */
 export async function getPendingPhotos(): Promise<PendingPhoto[]> {
   return (await db()`
-    select id, storage_ref, caption, submitter, email, status, created_at, kind, stack_prev_id
+    select id, storage_ref, caption, submitter, email, status, created_at, kind, stack_prev_id, rotation
     from photos
     where status = 'pending'
     order by created_at

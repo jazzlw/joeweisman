@@ -35,6 +35,27 @@ const VARIANT = process.env.CF_IMAGES_VARIANT || "public";
  */
 const THUMB_VARIANT = process.env.CF_IMAGES_THUMB_VARIANT || VARIANT;
 
+/**
+ * Rotation is applied in CSS, not here — deliberately.
+ *
+ * Cloudflare can rotate on delivery, but only through a *flexible* variant,
+ * where the options go in the URL instead of a variant name. Enabling those
+ * hands every caller control of the `metadata` option too, so anyone could ask
+ * for `metadata=keep` and read the EXIF of any photograph on the site. The image
+ * ids are already in the page source, and of forty archived originals sampled,
+ * fourteen carry GPS coordinates — people's homes, submitted by people who
+ * agreed to share a photograph and not their address.
+ *
+ * Named variants strip metadata completely, which was verified against a
+ * photograph whose original has coordinates: the original has them, /public and
+ * /thumb have no EXIF at all. Keeping every delivery on a named variant is what
+ * preserves that. Rotation is not worth trading it for.
+ *
+ * Named variants cannot rotate — they offer width, height, fit, metadata and
+ * signed-URL settings only — so `photos.rotation` is applied as a CSS transform
+ * where the picture is displayed. See `.rot` in tokens.css.
+ */
+
 /** Grid-sized URL. Same as imageUrl() until a thumbnail variant is configured. */
 export function thumbUrl(id: string): string {
   return imageUrl(id, THUMB_VARIANT);
