@@ -43,8 +43,13 @@ export default function StackLinkPicker({
 
   // Falls back to "none" if stack_prev_id points somewhere outside this
   // +/-3 window — true today only for a link set before this picker existed.
-  const matchIndex = OFFSETS.findIndex(
-    (offset, i) => (offset === 0 ? stackPrevId === null : candidates[i] === stackPrevId),
+  // candidates[i] !== null guards a row near either end of the list: an
+  // out-of-range offset there is also null, which must never count as a
+  // match just because this photo happens to be unlinked (stackPrevId also
+  // null) — that would make the picker default to a disabled option
+  // instead of "none".
+  const matchIndex = OFFSETS.findIndex((offset, i) =>
+    offset === 0 ? stackPrevId === null : candidates[i] !== null && candidates[i] === stackPrevId,
   );
   const value = matchIndex === -1 ? "0" : String(OFFSETS[matchIndex]);
 
