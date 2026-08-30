@@ -8,8 +8,9 @@ There will be a celebration of Joe's life on **Saturday, September 19th, from
 517 SW 2nd Street, Corvallis, OR 97330 —
 [open it in a map](https://www.google.com/maps?cid=13325151879433941951).
 
-The afternoon runs from 1 to 5, and **the service itself begins at 2:00**. The service will be followed by a reception. If you want to be there for the service, please arrive before 2. There will also be time to
-gather afterwards.
+The afternoon primarily runs from 1 to 5, and **the service itself begins at 2:00**. The service will be followed by a reception. If you want to be there for the service, please arrive before 2. There will also be additional time to gather afterwards, from 5-7.
+
+**Dress code:** Casual dress, provocative or humorous T-shirts a plus. 
 
 ## Please let us know if you are coming
 
