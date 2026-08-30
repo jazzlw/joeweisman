@@ -15,6 +15,13 @@
   --focus:     #2A5470;
   --todo:      #B8892A;   /* unfilled draft placeholders, dev only */
 
+  /* A small badge (the contacts grid's Edit icon), not a text/background
+     pair off the page's own theme — it carries its own fill, so unlike
+     everything else here it does not get a separate dark-mode value. One
+     computed check covers both: #FAF8F3 on #1E5631 is 8.1:1, AAA. */
+  --edit-badge-bg:   #1E5631;
+  --edit-badge-text: #FAF8F3;
+
   /* Type — committed .woff2, wired up in fonts.ts */
   --body:    var(--font-body), Georgia, "Times New Roman", serif;
   --display: var(--font-display), Georgia, serif;
@@ -338,6 +345,10 @@ body {
 /* ---- Admin ---- */
 
 .page-wide { max-width: 52rem; }
+/* The contacts grid needs real room for seven columns — .table-scroll still
+   catches whatever doesn't fit, but widening the page first means most
+   screens never need to. */
+.page-contacts { max-width: 90rem; }
 .admin-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); }
 .admin-head .page-title { text-align: left; margin-top: 0; }
 
@@ -499,8 +510,10 @@ body {
    .mod-caption-row/.mod-caption-input, duplicated rather than shared: those
    are specifically the photo caption editor's, and renaming them to be
    generic would touch code this didn't need to. */
-.field-editor-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; white-space: normal; }
-.field-editor-value { overflow-wrap: anywhere; }
+/* white-space stays nowrap, inherited from .contact-table td: the point of
+   .table-scroll is a table that grows wider than its box and scrolls, not
+   one that wraps every cell's own content to stay inside it. */
+.field-editor-row { display: flex; align-items: center; gap: .5rem; }
 .field-editor-empty { color: var(--muted); font-style: italic; }
 .field-editor-input {
   flex: 1 1 8rem;
@@ -512,6 +525,29 @@ body {
   border-radius: 2px;
   padding: .3rem .5rem;
 }
+
+/* A compact "Edit" trigger for the contacts grid — one per cell, up to five
+   in a row, and spelling out "Edit" on every one of them read as noisy. The
+   letter carries an aria-label; nothing here is conveyed by color alone. */
+.icon-edit {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 3px;
+  background: var(--edit-badge-bg);
+  color: var(--edit-badge-text);
+  font-family: var(--display);
+  font-size: .95rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+.icon-edit:hover { filter: brightness(1.15); }
+.icon-edit:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .tag-pending { color: var(--todo); }
 .tag-approved { color: var(--muted); }

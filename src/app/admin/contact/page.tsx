@@ -44,7 +44,7 @@ export default async function AdminContactPage() {
   `) as Row[];
 
   return (
-    <main className="page page-wide" id="main">
+    <main className="page page-contacts" id="main">
       <div className="admin-head">
         <h1 className="page-title">Contacts</h1>
         <Link href="/admin" className="btn-quiet">

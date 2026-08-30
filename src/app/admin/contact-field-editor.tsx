@@ -33,14 +33,15 @@ export default function ContactFieldEditor({
         )}
         <button
           type="button"
-          className="btn-quiet"
+          className="icon-edit"
+          aria-label="Edit"
           onClick={() => {
             setDraft(value ?? "");
             setError(null);
             setEditing(true);
           }}
         >
-          Edit
+          E
         </button>
       </span>
     );

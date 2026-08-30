@@ -231,7 +231,7 @@ export default async function AdminPage() {
       <ExportButton count={counts.contacts} />
       <p className="jump-note">
         <Link href="/admin/contact" className="btn-quiet">
-          Edit contacts
+          Browse/Edit Contacts
         </Link>
       </p>
 
