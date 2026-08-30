@@ -520,7 +520,7 @@ body {
    it max-width has no effect and the text overflows instead of wrapping. */
 .contact-notes-col .field-editor-value {
   white-space: normal;
-  max-width: 20ch;
+  max-width: 30ch;
   min-width: 0;
   overflow-wrap: break-word;
 }
@@ -553,14 +553,14 @@ body {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.225rem;
+  height: 1.225rem;
   border: 0;
   border-radius: 3px;
   background: var(--edit-badge-bg);
   color: var(--edit-badge-text);
   font-family: var(--display);
-  font-size: .95rem;
+  font-size: .665rem;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
