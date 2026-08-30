@@ -505,6 +505,11 @@ body {
 }
 .contact-table th { font-weight: 600; color: var(--muted); }
 .contact-email { overflow-wrap: anywhere; white-space: normal; }
+/* Note and admin note run long — wrap them to a fixed width instead of
+   letting them push the table wider than the other columns need. */
+.contact-notes-col { white-space: normal; }
+.contact-notes-col .field-editor-row { align-items: flex-start; }
+.contact-notes-col .field-editor-value { max-width: 20ch; overflow-wrap: break-word; }
 
 /* One editable cell — name, note, admin note, or party size. Same shape as
    .mod-caption-row/.mod-caption-input, duplicated rather than shared: those

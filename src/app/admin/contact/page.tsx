@@ -81,7 +81,7 @@ export default async function AdminContactPage() {
                       onSave={setContactName}
                     />
                   </td>
-                  <td>
+                  <td className="contact-notes-col">
                     <ContactFieldEditor
                       id={r.id}
                       value={r.note}
@@ -89,7 +89,7 @@ export default async function AdminContactPage() {
                       onSave={setContactNote}
                     />
                   </td>
-                  <td>
+                  <td className="contact-notes-col">
                     <ContactFieldEditor
                       id={r.id}
                       value={r.admin_note}
