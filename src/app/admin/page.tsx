@@ -11,6 +11,7 @@ import PhotoActions from "./photo-actions";
 import CaptionEditor from "./caption-editor";
 import YearEditor from "./year-editor";
 import KindEditor from "./kind-editor";
+import StackLinkToggle from "./stack-link-toggle";
 import FileActions from "./file-actions";
 import { getArtifactFiles, formatBytes } from "@/lib/artifact-files";
 import ExportButton from "./export-button";
@@ -116,7 +117,7 @@ export default async function AdminPage() {
   // had just arrived at the bottom of a long page.
   const photos = (await db()`
     select id, storage_ref, caption, submitter, email, status, created_at, archived_at,
-           taken_year, taken_source, exif_taken_at, kind, width, height
+           taken_year, taken_source, exif_taken_at, kind, width, height, stack_prev_id
     from photos
     order by (status = 'pending') desc, created_at desc
     limit 200
@@ -135,6 +136,7 @@ export default async function AdminPage() {
     kind: string;
     width: number | null;
     height: number | null;
+    stack_prev_id: string | null;
   }[];
 
   // A failure here shouldn't cost the whole admin page — photos and the
@@ -243,32 +245,42 @@ export default async function AdminPage() {
         <p className="muted-note">None submitted yet.</p>
       ) : (
         <div className="mod-grid">
-          {photos.map((p) => (
-            <figure key={p.id} className={`mod-photo is-${p.status}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumbUrl(p.storage_ref)} alt={p.caption ?? "Submitted photograph"} loading="lazy" />
-              <figcaption>
-                <span className={`tag tag-${p.status}`}>{p.status}</span>
-                {p.status === "approved" && !p.archived_at && (
-                  <span className="tag tag-pending">not backed up</span>
-                )}
-                <CaptionEditor id={p.id} caption={p.caption} />
-                <KindEditor id={p.id} kind={p.kind} />
-                <YearEditor
-                  id={p.id}
-                  year={p.taken_year}
-                  source={p.taken_source}
-                  exifTakenAt={p.exif_taken_at}
-                />
-                <span className="mod-meta">
-                  {p.submitter ?? "anonymous"}
-                  {p.email && <> &middot; {p.email}</>}
-                </span>
-                <span className="mod-meta">{describeResolution(p.width, p.height)}</span>
-              </figcaption>
-              <PhotoActions id={p.id} status={p.status} />
-            </figure>
-          ))}
+          {photos.map((p, i) => {
+            // Whatever's shown right above this one on the page right now —
+            // see StackLinkToggle and setStackPrev for why "prior" means this
+            // and not something recomputed from a stored order.
+            const priorId = i > 0 ? photos[i - 1].id : null;
+            return (
+              <figure key={p.id} className={`mod-photo is-${p.status}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={thumbUrl(p.storage_ref)} alt={p.caption ?? "Submitted photograph"} loading="lazy" />
+                <figcaption>
+                  <span className={`tag tag-${p.status}`}>{p.status}</span>
+                  {p.status === "approved" && !p.archived_at && (
+                    <span className="tag tag-pending">not backed up</span>
+                  )}
+                  {p.stack_prev_id && (
+                    <span className="mod-year-source">continues previous</span>
+                  )}
+                  <CaptionEditor id={p.id} caption={p.caption} />
+                  <KindEditor id={p.id} kind={p.kind} />
+                  <YearEditor
+                    id={p.id}
+                    year={p.taken_year}
+                    source={p.taken_source}
+                    exifTakenAt={p.exif_taken_at}
+                  />
+                  <StackLinkToggle id={p.id} priorId={priorId} linked={p.stack_prev_id === priorId} />
+                  <span className="mod-meta">
+                    {p.submitter ?? "anonymous"}
+                    {p.email && <> &middot; {p.email}</>}
+                  </span>
+                  <span className="mod-meta">{describeResolution(p.width, p.height)}</span>
+                </figcaption>
+                <PhotoActions id={p.id} status={p.status} />
+              </figure>
+            );
+          })}
         </div>
       )}
 

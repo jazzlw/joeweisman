@@ -77,6 +77,11 @@ export default async function ArtifactsPage() {
             caption: p.caption,
             submitter: p.submitter,
             year: p.taken_year,
+            stack: p.stack.map((s) => ({
+              thumb: thumbUrl(s.storage_ref),
+              full: imageUrl(s.storage_ref),
+              caption: s.caption,
+            })),
           }))}
         />
       )}

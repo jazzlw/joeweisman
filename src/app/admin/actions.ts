@@ -119,6 +119,26 @@ export async function setPhotoKind(id: string, kind: string): Promise<void> {
 }
 
 /**
+ * Chain a photo to the one shown right before it on the admin page — a
+ * stack: a bundle of a few images of the same thing, paged through from one
+ * tile in the gallery instead of each showing up on its own.
+ *
+ * priorId is computed by the caller from whatever order the admin page
+ * happened to render in, not recomputed here — so a later status change
+ * that reorders the list doesn't retroactively change what an already-set
+ * link points at. The unique index on stack_prev_id keeps a chain a
+ * straight line: linking B to A here fails loudly if something else
+ * already continues from A, rather than silently displacing it.
+ */
+export async function setStackPrev(id: string, priorId: string | null): Promise<void> {
+  if (!(await isAdmin())) throw new Error("Not authorised.");
+  if (priorId === id) throw new Error("A photo can't link to itself.");
+
+  await db()`update photos set stack_prev_id = ${priorId} where id = ${id}::uuid`;
+  revalidateGalleries();
+}
+
+/**
  * Set or clear the year a photograph was taken.
  *
  * Marked 'admin' so the source is visible: a hand-set year is the only one that

@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type GalleryPhoto = {
-  id: string;
-  /** Grid-sized. Big enough to stay crisp at 2x in a ~380px tile. */
+/** One image in a stack — the head itself, or one it continues to. */
+export type GalleryImage = {
   thumb: string;
-  /** Full size, only fetched when a photo is actually enlarged. */
   full: string;
   caption: string | null;
+};
+
+export type GalleryPhoto = GalleryImage & {
+  id: string;
   submitter: string | null;
   year: number | null;
+  /** The rest of this stack, in order — empty for a photo that isn't one. */
+  stack: GalleryImage[];
 };
 
 /**
@@ -102,6 +106,9 @@ function Caption({
 
 export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  // Which image within the open photo's own stack is showing — 0 is the
+  // head. Reset whenever a different photo opens, including via Previous/Next.
+  const [stackIndex, setStackIndex] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
   // Return focus to the thumbnail that was clicked, rather than the top of the page.
   const openerRef = useRef<HTMLButtonElement | null>(null);
@@ -117,6 +124,7 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
         const next = i + delta;
         return next < 0 || next >= photos.length ? i : next;
       });
+      setStackIndex(0);
     },
     [photos.length],
   );
@@ -138,6 +146,9 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
   }, [openIndex, step]);
 
   const current = openIndex === null ? null : photos[openIndex];
+  // The head plus the rest of its stack, so stackIndex just indexes into one flat list.
+  const frames = current ? [current, ...current.stack] : [];
+  const frame = frames[stackIndex] ?? current;
 
   return (
     <>
@@ -146,12 +157,19 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
           <li key={p.id}>
             <button
               type="button"
-              className="gallery-item"
+              className={p.stack.length > 0 ? "gallery-item gallery-item-stack" : "gallery-item"}
               onClick={(e) => {
                 openerRef.current = e.currentTarget;
                 setOpenIndex(i);
+                setStackIndex(0);
               }}
-              aria-label={p.caption ? `Enlarge: ${p.caption}` : "Enlarge photograph"}
+              aria-label={
+                p.stack.length > 0
+                  ? `Enlarge: ${p.caption ?? "photograph"} (${p.stack.length + 1} images)`
+                  : p.caption
+                    ? `Enlarge: ${p.caption}`
+                    : "Enlarge photograph"
+              }
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.thumb} alt={p.caption ?? "A photograph of Joe Weisman"} loading="lazy" decoding="async" />
@@ -174,10 +192,34 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
           if (e.target === dialogRef.current) close();
         }}
       >
-        {current && (
+        {current && frame && (
           <div className="lightbox-inner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={current.full} alt={current.caption ?? "A photograph of Joe Weisman"} />
+            <img src={frame.full} alt={frame.caption ?? "A photograph of Joe Weisman"} />
+
+            {current.stack.length > 0 && (
+              <div className="lightbox-bar">
+                <button
+                  type="button"
+                  className="btn-quiet"
+                  onClick={() => setStackIndex((n) => Math.max(0, n - 1))}
+                  disabled={stackIndex === 0}
+                >
+                  &larr; Previous in this set
+                </button>
+                <span className="lightbox-count">
+                  Image {stackIndex + 1} of {frames.length}
+                </span>
+                <button
+                  type="button"
+                  className="btn-quiet"
+                  onClick={() => setStackIndex((n) => Math.min(frames.length - 1, n + 1))}
+                  disabled={stackIndex === frames.length - 1}
+                >
+                  Next in this set &rarr;
+                </button>
+              </div>
+            )}
 
             <div className="lightbox-bar">
               <button
@@ -201,7 +243,7 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
               </button>
             </div>
 
-            <Caption caption={current.caption} submitter={current.submitter} year={current.year} className="lightbox-caption" />
+            <Caption caption={frame.caption} submitter={current.submitter} year={current.year} className="lightbox-caption" />
 
             <button type="button" className="lightbox-close btn-quiet" onClick={close}>
               Close

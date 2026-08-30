@@ -580,6 +580,13 @@ body {
 .mod-year-row { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .3rem; }
 .mod-year { font-variant-numeric: oldstyle-nums; }
 .mod-year-source { color: var(--muted); font-size: .8rem; }
+.mod-stack-toggle {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: var(--size-small);
+  margin-top: .3rem;
+}
 
 .entry.is-removed { opacity: .55; }
 .tag {
@@ -655,9 +662,32 @@ mark.todo {
   background: var(--bg-sunk);
   cursor: zoom-in;
 }
-.gallery-item img { width: 100%; height: auto; display: block; }
+.gallery-item img { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
 .gallery-item:hover { border-color: var(--muted); }
 .gallery-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* A stacked photo reads as a couple of pages peeking out from behind the
+   top one — two same-sized panels, rotated a few degrees so their corners
+   show past the thumbnail's own edges, each with a soft shadow for depth.
+   Static, not a hover effect: "nothing animates" per AGENTS.md, and the
+   point is to be visible at a glance in the grid, not discovered by hovering.
+   z-index: 0 here (not just position: relative) matters: it makes this
+   element its own stacking context, so the negative-z-index panels below
+   are guaranteed to paint behind the real thumbnail img (explicitly
+   z-index: 1) rather than depending on paint order elsewhere on the page. */
+.gallery-item-stack { position: relative; z-index: 0; margin-bottom: .5rem; }
+.gallery-item-stack::before,
+.gallery-item-stack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg-sunk);
+  border: 1px solid var(--rule);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .18);
+}
+.gallery-item-stack::before { transform: rotate(-3deg) translate(-2px, 3px); }
+.gallery-item-stack::after  { transform: rotate(4deg) translate(2px, 4px); }
 
 .gallery-caption {
   color: var(--muted);
