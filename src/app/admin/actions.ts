@@ -151,10 +151,27 @@ export async function setPhotoKind(id: string, kind: string): Promise<void> {
  * link points at. The unique index on stack_prev_id keeps a chain a
  * straight line: linking B to A here fails loudly if something else
  * already continues from A, rather than silently displacing it.
+ *
+ * The unique index stops two photos sharing a predecessor, but says
+ * nothing about a chain looping back on itself (A continues B, B
+ * continues A) — every photo in a loop like that would vanish from the
+ * gallery, since none of them would ever qualify as a head (see
+ * getApprovedPhotos in src/lib/photos.ts) and nothing outside the loop
+ * points into it. So walk forward from the proposed target first, and
+ * refuse if that walk would lead back to id.
  */
 export async function setStackPrev(id: string, targetId: string | null): Promise<void> {
   if (!(await isAdmin())) throw new Error("Not authorised.");
   if (targetId === id) throw new Error("A photo can't link to itself.");
+
+  let cursor = targetId;
+  for (let hops = 0; cursor && hops < 500; hops++) {
+    if (cursor === id) throw new Error("That would create a loop.");
+    const [row] = (await db()`
+      select stack_prev_id from photos where id = ${cursor}::uuid
+    `) as { stack_prev_id: string | null }[];
+    cursor = row?.stack_prev_id ?? null;
+  }
 
   await db()`update photos set stack_prev_id = ${targetId} where id = ${id}::uuid`;
   revalidateGalleries();
