@@ -208,7 +208,7 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
                 // aria-hidden: the button's own aria-label already says how
                 // many images are in the stack; this is a visual nudge only.
                 <span className="gallery-stack-hint" aria-hidden="true">
-                  click photo for more
+                  click to see all {p.stack.length + 1} items
                 </span>
               )}
             </button>
