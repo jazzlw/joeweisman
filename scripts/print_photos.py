@@ -156,6 +156,20 @@ def effective_dpi(img_w: int, img_h: int, paper: tuple[float, float], args, capt
     return (dpi_here if best[1] else 0.0), best[1]
 
 
+LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
+
+
+def plain_caption(entry: dict) -> str:
+    """The caption as it should read on paper.
+
+    A caption may carry one hand-typed `[label](url)` link — the gallery turns
+    it into something clickable. Paper cannot be clicked, so the card would
+    otherwise print the brackets and a URL nobody can follow, in the middle of a
+    sentence. Keep the label and drop the address.
+    """
+    return LINK.sub(r"\1", (entry.get("caption") or "").strip()).strip()
+
+
 def pick_size(entry: dict, args) -> str | None:
     """Choose the paper that suits one photograph.
 
@@ -170,7 +184,8 @@ def pick_size(entry: dict, args) -> str | None:
     if entry.get("rotation") in (90, 270):
         w, h = h, w
     ratio = max(w, h) / min(w, h)
-    lines = max(1, len((entry.get("caption") or "")) // 52 + 1) if entry.get("caption") else 0
+    text = plain_caption(entry)
+    lines = max(1, len(text) // 52 + 1) if text else 0
 
     def key(name: str):
         long_in, short_in = SIZES[name]
@@ -198,7 +213,7 @@ def compose(img: Image.Image, entry: dict, args, W: int, H: int):
     caption_font = load_font("source-serif-4-latin-400-italic", "Georgia Italic.ttf", 10, args.dpi)
     credit_font = load_font("source-serif-4-latin-400-normal", "Georgia.ttf", 8.5, args.dpi)
 
-    caption = (entry.get("caption") or "").strip()
+    caption = plain_caption(entry)
     lines = wrap(draw, caption, caption_font, W - 2 * margin) if caption else []
 
     # The year only. Who sent a photograph in is useful in the admin queue and
@@ -392,7 +407,7 @@ def main() -> int:
 
         out = (root_out / size) if auto else (root_out if args.out else root_out / size)
         out.mkdir(parents=True, exist_ok=True)
-        name = f"{slug(e.get('caption'), e['id'][:8])}--{e['id'][:8]}.jpg"
+        name = f"{slug(plain_caption(e), e['id'][:8])}--{e['id'][:8]}.jpg"
         dest = out / name
 
         # One card per photograph. A run at a different size, or with a
