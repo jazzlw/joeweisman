@@ -12,7 +12,8 @@
     "archive": "node scripts/archive.mjs",
     "dimensions": "node --experimental-strip-types scripts/dimensions.mjs",
     "qr": "node scripts/qr.mjs",
-    "rsvp": "node scripts/rsvp.mjs"
+    "rsvp": "node scripts/rsvp.mjs",
+    "print:manifest": "node scripts/print-manifest.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
