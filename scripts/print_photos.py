@@ -81,7 +81,21 @@ def ensure_fonts() -> None:
         except Exception as exc:  # noqa: BLE001 - falling back is fine
             print(f"  could not unpack {face}: {exc}", file=sys.stderr)
 
-SIZES = {"4x6": (6.0, 4.0), "5x7": (7.0, 5.0), "8x10": (10.0, 8.0)}
+# Long edge first. 6x8 is 4:3 and 4x6 is 3:2, which between them match 110 of
+# the 130 photographs exactly — most of what people sent came off a phone or a
+# camera, not a scanner.
+SIZES = {
+    "4x6": (6.0, 4.0),    # 3:2
+    "5x7": (7.0, 5.0),    # 1.4
+    "6x8": (8.0, 6.0),    # 4:3
+    "8x8": (8.0, 8.0),    # square
+    "8x10": (10.0, 8.0),  # 1.25
+    "8x12": (12.0, 8.0),  # 3:2, large
+}
+
+# What --size auto may choose from, in order of preference when two fit equally
+# well. Medium sizes first: these are going on a wall and then home in a hand.
+AUTO = ["6x8", "4x6", "8x10", "8x8", "5x7", "8x12"]
 
 
 def load_font(name: str, fallback: str, pt: float, dpi: int) -> ImageFont.FreeTypeFont:
@@ -114,6 +128,63 @@ def slug(text: str, fallback: str) -> str:
     return s or fallback
 
 
+
+def effective_dpi(img_w: int, img_h: int, paper: tuple[float, float], args, caption_lines: int) -> tuple[float, str]:
+    """Resolution a photograph would print at on a given paper, and its orientation.
+
+    Computed rather than rendered: scale is min(available/size), and the printed
+    resolution is the output dpi divided by that scale, so the whole choice can
+    be made without resizing anything six times per photograph.
+    """
+    margin = 0.28 * args.dpi
+    line_h = 1.32 * (10 * args.dpi / 72)
+    block = caption_lines * line_h + (1.5 * 8.5 * args.dpi / 72 if caption_lines else 0)
+    gap = 0.14 * args.dpi if block else 0
+
+    best = (0.0, "")
+    long_in, short_in = paper
+    for pw, ph, name in ((short_in, long_in, "portrait"), (long_in, short_in, "landscape")):
+        W, H = pw * args.dpi, ph * args.dpi
+        aw, ah = W - 2 * margin, H - 2 * margin - gap - block
+        if aw <= 0 or ah <= 0:
+            continue
+        scale = min(aw / img_w, ah / img_h)
+        area = (img_w * scale) * (img_h * scale)
+        if area > best[0]:
+            best = (area, name)
+            dpi_here = args.dpi / scale
+    return (dpi_here if best[1] else 0.0), best[1]
+
+
+def pick_size(entry: dict, args) -> str | None:
+    """Choose the paper that suits one photograph.
+
+    Best aspect match first, so a 4:3 photograph lands on 6x8 and a 3:2 one on
+    4x6 with almost no border either side, and only then by what stays sharp
+    enough. A photograph too soft for every candidate gets the smallest, and is
+    reported rather than quietly dropped.
+    """
+    w, h = entry.get("width"), entry.get("height")
+    if not w or not h:
+        return None
+    if entry.get("rotation") in (90, 270):
+        w, h = h, w
+    ratio = max(w, h) / min(w, h)
+    lines = max(1, len((entry.get("caption") or "")) // 52 + 1) if entry.get("caption") else 0
+
+    def key(name: str):
+        long_in, short_in = SIZES[name]
+        paper_ratio = long_in / short_in
+        mismatch = abs(paper_ratio - ratio) / max(paper_ratio, ratio)
+        return (round(mismatch, 3), AUTO.index(name))
+
+    for name in sorted(AUTO, key=key):
+        dpi_here, _ = effective_dpi(w, h, SIZES[name], args, lines)
+        if not args.min_dpi or dpi_here >= args.min_dpi:
+            return name
+    return None
+
+
 def compose(img: Image.Image, entry: dict, args, W: int, H: int):
     """Lay the photograph and its caption onto one W x H card.
 
@@ -130,12 +201,15 @@ def compose(img: Image.Image, entry: dict, args, W: int, H: int):
     caption = (entry.get("caption") or "").strip()
     lines = wrap(draw, caption, caption_font, W - 2 * margin) if caption else []
 
-    bits = []
-    if entry.get("taken_year"):
-        bits.append(str(entry["taken_year"]))
-    if entry.get("submitter"):
-        bits.append(f"— {entry['submitter'].strip()}")
-    credit = "  ".join(bits)
+    # The year only. Who sent a photograph in is useful in the admin queue and
+    # beside it in the gallery, but on a print somebody takes home it reads as a
+    # byline on someone else's memory.
+    #
+    # Suppressed when the caption already says it — most of them do, and
+    # "Joe in Ashland, 2013" above a line reading "2013" is just clutter. Same
+    # rule as yearWorthShowing() in the gallery.
+    year = entry.get("taken_year")
+    credit = str(year) if year and str(year) not in caption else ""
 
     line_h = int(1.32 * caption_font.size)
     credit_h = int(1.5 * credit_font.size) if credit else 0
@@ -262,7 +336,8 @@ def contact_sheets(cards_dir: pathlib.Path, out_dir: pathlib.Path, cols: int = 4
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--size", choices=sorted(SIZES), default="5x7")
+    ap.add_argument("--size", choices=sorted(SIZES) + ["auto"], default="auto",
+                    help="auto sorts each photo into the paper that suits it (default)")
     ap.add_argument("--dpi", type=int, default=300, help="output resolution (default 300)")
     ap.add_argument("--min-dpi", type=float, default=150,
                     help="skip a photo that would print below this; 0 for all (default 150)")
@@ -288,22 +363,43 @@ def main() -> int:
     entries = json.loads(mf.read_text())
     ensure_fonts()
 
-    out = pathlib.Path(args.out) if args.out else ROOT / "media" / "print" / args.size
-    out.mkdir(parents=True, exist_ok=True)
+    root_out = pathlib.Path(args.out) if args.out else ROOT / "media" / "print"
+    auto = args.size == "auto"
 
-    made = skipped = existing = missing = toosoft = 0
+    made = existing = missing = toosoft = 0
     soft: list[str] = []
+    tally: dict[str, int] = {}
 
     for e in entries:
-        name = f"{slug(e.get('caption'), e['id'][:8])}--{e['id'][:8]}.jpg"
-        dest = out / name
-        # Re-measure even when the card exists, so a photograph that no longer
-        # clears --min-dpi has its stale card cleared rather than silently kept.
-        if dest.exists() and not args.force and not args.min_dpi:
-            existing += 1
+        size = pick_size(e, args) if auto else args.size
+        if size is None:
+            # Either no recorded dimensions, or too soft for every paper.
+            toosoft += 1
+            soft.append(f"  ----   {(e.get('caption') or '')[:46]}")
             continue
 
-        built = build(e, args, SIZES[args.size])
+        out = (root_out / size) if auto else (root_out if args.out else root_out / size)
+        out.mkdir(parents=True, exist_ok=True)
+        name = f"{slug(e.get('caption'), e['id'][:8])}--{e['id'][:8]}.jpg"
+        dest = out / name
+
+        # One card per photograph. A run at a different size, or with a
+        # different softness bar, leaves the old card where it was — and since
+        # each folder is an order, the same picture would be printed twice at
+        # two sizes with nothing to say so.
+        for other in SIZES:
+            if other == size:
+                continue
+            stale = root_out / other / name
+            if stale.exists():
+                stale.unlink()
+
+        if dest.exists() and not args.force and not args.min_dpi:
+            existing += 1
+            tally[size] = tally.get(size, 0) + 1
+            continue
+
+        built = build(e, args, SIZES[size])
         if built is None:
             missing += 1
             continue
@@ -311,20 +407,34 @@ def main() -> int:
 
         if args.min_dpi and eff < args.min_dpi:
             toosoft += 1
-            soft.append(f"{eff:6.0f} dpi  {(e.get('caption') or '')[:44]}")
+            line = f"{eff:6.0f} dpi  {(e.get('caption') or '')[:46]}"
             # Clear any card left from an earlier run at a looser setting.
             # Skipping without doing so leaves a file behind that nothing
             # mentions again, and the folder is the print order.
             if dest.exists():
                 dest.unlink()
-                soft[-1] += "   [removed stale card]"
+                line += "   [removed stale card]"
+            soft.append(line)
+            continue
+
+        if dest.exists() and not args.force:
+            existing += 1
+            tally[size] = tally.get(size, 0) + 1
             continue
 
         canvas.save(dest, "JPEG", quality=94, dpi=(args.dpi, args.dpi), subsampling=0)
         made += 1
+        tally[size] = tally.get(size, 0) + 1
 
-    print(f"\n  {args.size} at {args.dpi} dpi -> {out.relative_to(ROOT)}")
-    print(f"    written .............. {made}")
+    for size in SIZES:
+        d = root_out / size
+        if d.is_dir() and not any(d.iterdir()):
+            d.rmdir()
+
+    print(f"\n  {args.dpi} dpi -> {root_out.relative_to(ROOT)}")
+    for size in sorted(tally, key=lambda k: -tally[k]):
+        print(f"    {size:6} .............. {tally[size]:3}  cards")
+    print(f"    written this run ..... {made}")
     if existing:
         print(f"    already there ........ {existing}   (--force to redo)")
     if toosoft:
