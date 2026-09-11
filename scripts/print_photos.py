@@ -297,7 +297,14 @@ def contact_sheets(cards_dir: pathlib.Path, out_dir: pathlib.Path, cols: int = 4
     Each cell is labelled with the id shown in /admin, so a wrong one can be
     found, turned there, and the tool re-run.
     """
+    # Cards live in one folder per paper size, so gather across all of them —
+    # the point is looking at every photograph, not at one order.
     cards = sorted(cards_dir.glob("*.jpg"))
+    if not cards:
+        cards = sorted(
+            f for d in cards_dir.iterdir() if d.is_dir() and d.name != "review"
+            for f in d.glob("*.jpg")
+        )
     if not cards:
         print(f"  no cards in {cards_dir}", file=sys.stderr)
         return 1
@@ -351,10 +358,10 @@ def main() -> int:
     out_default = ROOT / "media" / "print" / args.size
     if args.contact_sheet:
         ensure_fonts()
-        return contact_sheets(
-            pathlib.Path(args.out) if args.out else out_default,
-            ROOT / "media" / "print" / "review",
+        where = pathlib.Path(args.out) if args.out else (
+            ROOT / "media" / "print" if args.size == "auto" else out_default
         )
+        return contact_sheets(where, ROOT / "media" / "print" / "review")
 
     mf = pathlib.Path(args.manifest)
     if not mf.exists():
@@ -369,13 +376,18 @@ def main() -> int:
     made = existing = missing = toosoft = 0
     soft: list[str] = []
     tally: dict[str, int] = {}
+    # Everything that did not get a card, with the reason. Written out at the
+    # end: a photograph silently absent from the order is the one failure here
+    # nobody would notice until the prints arrived.
+    rejects: list[tuple[str, str, str]] = []
 
     for e in entries:
         size = pick_size(e, args) if auto else args.size
         if size is None:
-            # Either no recorded dimensions, or too soft for every paper.
             toosoft += 1
+            dims = f"{e.get('width')}x{e.get('height')}" if e.get("width") else "no size recorded"
             soft.append(f"  ----   {(e.get('caption') or '')[:46]}")
+            rejects.append((e["id"][:8], f"too soft at every size ({dims})", e.get("caption") or ""))
             continue
 
         out = (root_out / size) if auto else (root_out if args.out else root_out / size)
@@ -402,6 +414,9 @@ def main() -> int:
         built = build(e, args, SIZES[size])
         if built is None:
             missing += 1
+            src = ROOT / "media" / "archive" / e["archive_key"]
+            why = "not pulled yet" if not src.exists() else "could not be read"
+            rejects.append((e["id"][:8], why, e.get("caption") or ""))
             continue
         canvas, eff = built
 
@@ -415,6 +430,13 @@ def main() -> int:
                 dest.unlink()
                 line += "   [removed stale card]"
             soft.append(line)
+            rejects.append((e["id"][:8], f"{eff:.0f} dpi at {size}, below the {args.min_dpi:.0f} bar",
+                            e.get("caption") or ""))
+            # Keep a viewable copy, so a photograph that matters can be looked
+            # at and moved into an order by hand rather than just vanishing.
+            (root_out / "_rejected").mkdir(parents=True, exist_ok=True)
+            canvas.save(root_out / "_rejected" / name, "JPEG", quality=94,
+                        dpi=(args.dpi, args.dpi), subsampling=0)
             continue
 
         if dest.exists() and not args.force:
@@ -431,6 +453,16 @@ def main() -> int:
         if d.is_dir() and not any(d.iterdir()):
             d.rmdir()
 
+    rej_dir = root_out / "_rejected"
+    if rejects:
+        rej_dir.mkdir(parents=True, exist_ok=True)
+        lines = [f"{len(rejects)} photographs are not in the order.", ""]
+        for pid, why, cap in sorted(rejects, key=lambda r: r[1]):
+            lines.append(f"{pid}  {why:<44}  {cap[:60]}")
+        (rej_dir / "not-printed.txt").write_text("\n".join(lines) + "\n")
+    elif (rej_dir / "not-printed.txt").exists():
+        (rej_dir / "not-printed.txt").unlink()
+
     print(f"\n  {args.dpi} dpi -> {root_out.relative_to(ROOT)}")
     for size in sorted(tally, key=lambda k: -tally[k]):
         print(f"    {size:6} .............. {tally[size]:3}  cards")
@@ -441,6 +473,8 @@ def main() -> int:
         print(f"    below {args.min_dpi:.0f} dpi ......... {toosoft}   (--min-dpi 0 to include)")
     if missing:
         print(f"    not pulled yet ....... {missing}   (npm run archive -- --pull)")
+    if rejects:
+        print(f"    not in the order ..... {len(rejects)}   (media/print/_rejected/not-printed.txt)")
     if soft:
         print("\n  too soft for this size:")
         for s in sorted(soft)[:12]:
