@@ -95,7 +95,23 @@ SIZES = {
 
 # What --size auto may choose from, in order of preference when two fit equally
 # well. Medium sizes first: these are going on a wall and then home in a hand.
-AUTO = ["6x8", "4x6", "8x10", "8x8", "5x7", "8x12"]
+#
+# 4x6 is deliberately absent. The border and caption take a fixed bite out of
+# whatever paper they land on — about 0.28in a side plus the text — so on the
+# smallest sheet the photograph itself is only 4.4 x 2.9in, barely half the
+# card, and reads as a stamp in a wide dark mount. The same picture on 5x7 is
+# 5.9 x 3.9in: two thirds of the sheet, and nearly twice the area for a third
+# less resolution.
+#
+# 8x12 is absent for the opposite reason: it is also an exact 3:2, so with 4x6
+# gone every 3:2 photograph jumped to it and a third of the order became the
+# largest sheet on the list. It stays in SIZES for --size 8x12 by hand.
+AUTO = ["6x8", "8x10", "8x8", "5x7"]
+
+# Where a photograph goes when it is too soft for any of the above. Six of them
+# are 1970s prints scanned at around 400px, and at 5x7 they fall under the bar;
+# the choice for those is a small card or no card, and a small card is better.
+LAST_RESORT = "4x6"
 
 
 def load_font(name: str, fallback: str, pt: float, dpi: int) -> ImageFont.FreeTypeFont:
@@ -197,6 +213,12 @@ def pick_size(entry: dict, args) -> str | None:
         dpi_here, _ = effective_dpi(w, h, SIZES[name], args, lines)
         if not args.min_dpi or dpi_here >= args.min_dpi:
             return name
+
+    # Nothing in the preferred set holds up. Take the small card if it clears
+    # the bar, and only give up if even that is too soft.
+    dpi_here, _ = effective_dpi(w, h, SIZES[LAST_RESORT], args, lines)
+    if not args.min_dpi or dpi_here >= args.min_dpi:
+        return LAST_RESORT
     return None
 
 
