@@ -410,6 +410,19 @@ def main() -> int:
     root_out = pathlib.Path(args.out) if args.out else ROOT / "media" / "print"
     auto = args.size == "auto"
 
+    # What each card was last rendered from. Whether a card is up to date
+    # cannot be answered by its filename: the name carries a slug of the
+    # caption, so correcting "CFMC" to "CfMC", or a year from 2024 to 2022,
+    # changes what belongs on the card without changing what it is called. The
+    # run then finds the file already there and skips it, and the wrong card
+    # goes to the lab looking exactly like a right one.
+    stamp_file = root_out / ".rendered.json"
+    try:
+        stamps = json.loads(stamp_file.read_text())
+    except (OSError, ValueError):
+        stamps = {}
+    fresh: dict[str, str] = {}
+
     made = existing = missing = toosoft = 0
     soft: list[str] = []
     tally: dict[str, int] = {}
@@ -431,6 +444,15 @@ def main() -> int:
         out.mkdir(parents=True, exist_ok=True)
         name = f"{slug(plain_caption(e), e['id'][:8])}--{e['id'][:8]}.jpg"
         dest = out / name
+
+        # Everything that decides what the card looks like. A change to any of
+        # it is a card that has to be drawn again, whatever the file is called.
+        src = ROOT / "media" / "archive" / e["archive_key"]
+        fp = json.dumps([plain_caption(e), e.get("taken_year"), size,
+                         e.get("rotation"), args.dpi,
+                         src.stat().st_mtime_ns if src.exists() else None],
+                        sort_keys=True)
+        fresh[e["id"][:8]] = fp
 
         # One card per photograph, matched on the id rather than the filename.
         # A run at a different size, a different softness bar, or an edited
@@ -476,7 +498,7 @@ def main() -> int:
                         dpi=(args.dpi, args.dpi), subsampling=0)
             continue
 
-        if dest.exists() and not args.force:
+        if dest.exists() and not args.force and stamps.get(e["id"][:8]) == fp:
             existing += 1
             tally[size] = tally.get(size, 0) + 1
             continue
@@ -484,6 +506,20 @@ def main() -> int:
         canvas.save(dest, "JPEG", quality=94, dpi=(args.dpi, args.dpi), subsampling=0)
         made += 1
         tally[size] = tally.get(size, 0) + 1
+
+    # Cards for photographs that are no longer in the manifest at all — one
+    # deleted in the admin, or replaced by a better scan of the same picture,
+    # which arrives as a new row with a new id. Nothing in the loop above can
+    # reach these: it only ever walks the manifest, so a card whose photograph
+    # left it is never looked at again and sits in the order until somebody
+    # notices they printed the old copy alongside the new one.
+    live = {e["id"][:8] for e in entries}
+    orphans = [p for size in SIZES for p in (root_out / size).glob("*.jpg")
+               if p.stem[-8:] not in live]
+    for p in orphans:
+        p.unlink()
+
+    stamp_file.write_text(json.dumps(fresh, indent=1, sort_keys=True))
 
     for size in SIZES:
         d = root_out / size
@@ -510,6 +546,10 @@ def main() -> int:
         print(f"    below {args.min_dpi:.0f} dpi ......... {toosoft}   (--min-dpi 0 to include)")
     if missing:
         print(f"    not pulled yet ....... {missing}   (npm run archive -- --pull)")
+    if orphans:
+        print(f"    withdrawn ............ {len(orphans)}   (no longer in the manifest)")
+        for p in orphans:
+            print(f"      - {p.parent.name}/{p.name}")
     if rejects:
         print(f"    not in the order ..... {len(rejects)}   (media/print/_rejected/not-printed.txt)")
     if soft:
