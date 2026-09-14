@@ -24,6 +24,7 @@ import json
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -391,6 +392,156 @@ def contact_sheets(cards_dir: pathlib.Path, out_dir: pathlib.Path, cols: int = 4
     return 0
 
 
+def load_source(entry: dict):
+    """The archived original, turned the right way up. None if unreadable."""
+    src = ROOT / "media" / "archive" / entry["archive_key"]
+    if not src.exists():
+        return None
+    try:
+        img = Image.open(src)
+    except Exception as exc:  # noqa: BLE001 - reported, not swallowed
+        print(f"  could not read {src.name}: {exc}", file=sys.stderr)
+        return None
+    img = ImageOps.exif_transpose(img)
+    if entry.get("rotation"):
+        img = img.rotate(-entry["rotation"], expand=True)
+    return img.convert("RGB")
+
+
+def compose_slide(img: Image.Image, entry: dict, W: int, H: int) -> Image.Image:
+    """One photograph on a 16:9 screen, captioned.
+
+    Sized for reading across a room rather than in the hand, which is the only
+    real difference from a card: the type is proportionally much larger, and
+    the caption is centred and held to two thirds of the width, because a line
+    of text run edge to edge on a wide screen is tiring to follow.
+    """
+    canvas = Image.new("RGB", (W, H), BG)
+    draw = ImageDraw.Draw(canvas)
+
+    margin = int(H * 0.052)
+    cap_font = load_font("source-serif-4-latin-400-italic", "Georgia Italic.ttf", H * 0.0315, 72)
+    yr_font = load_font("source-serif-4-latin-400-normal", "Georgia.ttf", H * 0.023, 72)
+
+    caption = plain_caption(entry)
+    lines = wrap(draw, caption, cap_font, int(W * 0.66)) if caption else []
+    year = entry.get("taken_year")
+    yr = str(year) if year and str(year) not in caption else ""
+
+    line_h = int(cap_font.size * 1.34)
+    yr_h = int(yr_font.size * 1.7) if yr else 0
+    block_h = len(lines) * line_h + yr_h
+    gap = int(H * 0.035) if block_h else 0
+
+    avail_w, avail_h = W - 2 * margin, H - 2 * margin - gap - block_h
+    scale = min(avail_w / img.width, avail_h / img.height)
+    iw, ih = max(1, int(img.width * scale)), max(1, int(img.height * scale))
+
+    top = margin + (H - 2 * margin - (ih + gap + block_h)) // 2
+    canvas.paste(img.resize((iw, ih), Image.LANCZOS), ((W - iw) // 2, top))
+
+    y = top + ih + gap
+    for line in lines:
+        draw.text((W // 2, y), line, font=cap_font, fill=TEXT, anchor="ma")
+        y += line_h
+    if yr:
+        draw.text((W // 2, y + int(yr_font.size * 0.3)), yr, font=yr_font, fill=MUTED, anchor="ma")
+    return canvas
+
+
+def make_slides(entries: list[dict], out: pathlib.Path, W: int, H: int) -> int:
+    """Render every photograph as a slide, in date order.
+
+    Ordered by the year on the record, with the undated ones as a coda at the
+    end rather than guessed into the sequence. The order is baked into the
+    filenames so that anything which plays a folder — ffmpeg, a television's
+    own USB slideshow, Preview — gets the chronology for free, with no playlist
+    to keep in step.
+    """
+    dated = sorted((e for e in entries if e.get("taken_year")), key=lambda e: e["taken_year"])
+    undated = [e for e in entries if not e.get("taken_year")]
+
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+
+    made = 0
+    for i, e in enumerate(dated + undated, 1):
+        img = load_source(e)
+        if img is None:
+            continue
+        compose_slide(img, e, W, H).save(
+            out / f"{i:04d}--{e['id'][:8]}.jpg", "JPEG", quality=92, subsampling=0)
+        made += 1
+
+    span = f"{dated[0]['taken_year']}-{dated[-1]['taken_year']}" if dated else "no dates"
+    print(f"\n  {made} slides at {W}x{H} -> {out.relative_to(ROOT)}")
+    print(f"    {len(dated)} in date order ({span}), {len(undated)} undated at the end")
+    return 0
+
+
+def make_video(entries: list[dict], slides: pathlib.Path, dest: pathlib.Path, base: float) -> int:
+    """Encode the slides into one looping file to hand to whoever runs the screen.
+
+    A video rather than a folder or a browser tab: it plays off a memory stick
+    in a television, loops with one setting in any player, and cannot show a
+    URL bar, a notification, or a screensaver twenty minutes in.
+
+    Each slide is held for as long as its caption needs. A fixed interval is
+    either too short for the long ones or leaves the wordless ones sitting
+    there, and several of these captions are two full lines.
+    """
+    if not slides.is_dir() or not any(slides.glob("*.jpg")):
+        print(f"No slides in {slides}. Run: --slides", file=sys.stderr)
+        return 1
+
+    # The interpreter's own environment first, then PATH. A Homebrew ffmpeg can
+    # be on PATH and not run at all — a missing dylib from some unrelated
+    # upgrade — and the one beside a conda python is the one that matches it.
+    beside = pathlib.Path(sys.executable).parent / "ffmpeg"
+    ffmpeg = str(beside) if beside.exists() else shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("No ffmpeg found.", file=sys.stderr)
+        return 1
+
+    words = {e["id"][:8]: len(plain_caption(e).split()) for e in entries}
+    files = sorted(slides.glob("*.jpg"))
+
+    lines, total = [], 0.0
+    for p in files:
+        hold = min(13.0, base + 0.3 * words.get(p.stem[-8:], 0))
+        lines.append(f"file '{p.name}'\nduration {hold:.2f}")
+        total += hold
+    # The concat demuxer drops the final entry's duration, so the last file is
+    # named twice: once with its hold, once to close the list.
+    lines.append(f"file '{files[-1].name}'")
+    listing = slides / "concat.txt"
+    listing.write_text("\n".join(lines) + "\n")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # Broadcast range, tagged. JPEG is full-range, and an untagged full-range
+    # file handed to a television is read as limited: every level shifts, and
+    # on a design that is mostly one dark colour that shows up as a grey wash
+    # where the black should be. Converting and saying so costs nothing.
+    cmd = [ffmpeg, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
+           "-i", str(listing),
+           "-vf", "fps=30,scale=out_color_matrix=bt709:out_range=tv,format=yuv420p",
+           "-c:v", "libx264", "-crf", "20", "-preset", "medium",
+           "-colorspace", "bt709", "-color_primaries", "bt709",
+           "-color_trc", "bt709", "-color_range", "tv",
+           "-movflags", "+faststart", str(dest)]
+    print(f"\n  encoding {len(files)} slides, {total/60:.1f} minutes ...")
+    if subprocess.run(cmd).returncode != 0:
+        print("  ffmpeg failed", file=sys.stderr)
+        return 1
+    listing.unlink()
+
+    mb = dest.stat().st_size / 1e6
+    print(f"  {dest.relative_to(ROOT)}  —  {total/60:.1f} min, {mb:.0f} MB")
+    print(f"    holds run {base:.0f}s for a bare caption to 13s for the longest")
+    return 0
+
+
 def make_batches(root: pathlib.Path, limit: int) -> int:
     """Copy the finished order into upload batches a lab will accept.
 
@@ -456,6 +607,14 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     ap.add_argument("--contact-sheet", action="store_true",
                     help="tile the finished cards onto sheets for a rotation check")
+    ap.add_argument("--slides", nargs="?", const="1920x1080", default=None,
+                    metavar="WxH",
+                    help="render every photograph as a captioned 16:9 slide in date "
+                         "order, for a screen at the event (default 1920x1080)")
+    ap.add_argument("--video", nargs="?", type=float, const=6.0, default=None,
+                    metavar="SECONDS",
+                    help="encode the rendered slides into one looping mp4, holding "
+                         "each for SECONDS plus reading time (default 6)")
     ap.add_argument("--batches", nargs="?", type=int, const=50, default=None,
                     metavar="N",
                     help="copy the order into media/print/upload/ in batches of at "
@@ -465,6 +624,30 @@ def main() -> int:
     out_default = ROOT / "media" / "print" / args.size
     if args.batches:
         return make_batches(ROOT / "media" / "print", args.batches)
+
+    if args.video:
+        mf = pathlib.Path(args.manifest)
+        if not mf.exists():
+            print(f"No manifest at {mf}. Run: npm run print:manifest", file=sys.stderr)
+            return 1
+        return make_video(json.loads(mf.read_text()),
+                          ROOT / "media" / "slides",
+                          ROOT / "media" / "slideshow.mp4", args.video)
+
+    if args.slides:
+        mf = pathlib.Path(args.manifest)
+        if not mf.exists():
+            print(f"No manifest at {mf}. Run: npm run print:manifest", file=sys.stderr)
+            return 1
+        try:
+            W, H = (int(n) for n in args.slides.lower().split("x"))
+        except ValueError:
+            print(f"--slides wants WxH, e.g. 1920x1080 (got {args.slides!r})", file=sys.stderr)
+            return 1
+        ensure_fonts()
+        return make_slides(json.loads(mf.read_text()),
+                           pathlib.Path(args.out) if args.out else ROOT / "media" / "slides",
+                           W, H)
     if args.contact_sheet:
         ensure_fonts()
         where = pathlib.Path(args.out) if args.out else (
