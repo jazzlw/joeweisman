@@ -23,6 +23,7 @@ import argparse
 import json
 import pathlib
 import re
+import shutil
 import sys
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -390,6 +391,59 @@ def contact_sheets(cards_dir: pathlib.Path, out_dir: pathlib.Path, cols: int = 4
     return 0
 
 
+def make_batches(root: pathlib.Path, limit: int) -> int:
+    """Copy the finished order into upload batches a lab will accept.
+
+    Labs cap how many files go up at once. Splitting has to happen somewhere
+    other than the size folders themselves: a re-render writes back into those,
+    and would not see cards that had been moved down a level — it would draw
+    them again alongside, and the order would quietly hold two of everything.
+    So this builds a separate tree and the size folders stay canonical.
+
+    Copies rather than links, because a re-render replaces a card with a new
+    file: a link would still be pointing at the old one, showing the correct
+    name and the wrong picture. The tree is rebuilt from scratch each time for
+    the same reason — it is a snapshot of the order, and a stale one is worse
+    than none.
+    """
+    dest = root / "upload"
+    if dest.exists():
+        shutil.rmtree(dest)
+
+    plan, total = [], 0
+    for size in sorted(SIZES, key=lambda s: SIZES[s][0] * SIZES[s][1]):
+        cards = sorted((root / size).glob("*.jpg")) if (root / size).is_dir() else []
+        if not cards:
+            continue
+        # Even batches rather than full ones: 60 goes 30 and 30, not 50 and 10.
+        # Both are two uploads, and the even pair is easier to keep track of
+        # halfway through.
+        n = -(-len(cards) // limit)
+        per = -(-len(cards) // n)
+        for i in range(n):
+            chunk = cards[i * per:(i + 1) * per]
+            if not chunk:
+                continue
+            name = size if n == 1 else f"{size}-batch-{i + 1}of{n}"
+            folder = dest / name
+            folder.mkdir(parents=True)
+            for c in chunk:
+                shutil.copy2(c, folder / c.name)
+            plan.append((name, size, len(chunk)))
+            total += len(chunk)
+
+    lines = [f"{total} cards to order, in {len(plan)} upload(s) of at most {limit}.", ""]
+    for name, size, count in plan:
+        lines.append(f"  {name:22}  {count:3} prints at {size}")
+    (dest / "order.txt").write_text("\n".join(lines) + "\n")
+
+    print(f"\n  {total} cards -> {dest.relative_to(ROOT)}")
+    for name, size, count in plan:
+        print(f"    {name:22} {count:3}  prints at {size}")
+    print(f"    {len(plan)} upload(s), none over {limit}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--size", choices=sorted(SIZES) + ["auto"], default="auto",
@@ -402,9 +456,15 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     ap.add_argument("--contact-sheet", action="store_true",
                     help="tile the finished cards onto sheets for a rotation check")
+    ap.add_argument("--batches", nargs="?", type=int, const=50, default=None,
+                    metavar="N",
+                    help="copy the order into media/print/upload/ in batches of at "
+                         "most N files, for a lab that caps an upload (default 50)")
     args = ap.parse_args()
 
     out_default = ROOT / "media" / "print" / args.size
+    if args.batches:
+        return make_batches(ROOT / "media" / "print", args.batches)
     if args.contact_sheet:
         ensure_fonts()
         where = pathlib.Path(args.out) if args.out else (
