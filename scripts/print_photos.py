@@ -410,16 +410,16 @@ def main() -> int:
         name = f"{slug(plain_caption(e), e['id'][:8])}--{e['id'][:8]}.jpg"
         dest = out / name
 
-        # One card per photograph. A run at a different size, or with a
-        # different softness bar, leaves the old card where it was — and since
-        # each folder is an order, the same picture would be printed twice at
-        # two sizes with nothing to say so.
-        for other in SIZES:
-            if other == size:
-                continue
-            stale = root_out / other / name
-            if stale.exists():
-                stale.unlink()
+        # One card per photograph, matched on the id rather than the filename.
+        # A run at a different size, a different softness bar, or an edited
+        # caption all leave the old card where it was — and since each folder
+        # is an order, the same picture would be printed twice with nothing to
+        # say so. The caption is the case that hides: it changes the slug the
+        # filename is built from, so the old card sits in the same folder under
+        # a name nothing will ever write again.
+        for old in root_out.glob(f"*/*--{e['id'][:8]}.jpg"):
+            if old != dest and old.parent.name in SIZES:
+                old.unlink()
 
         if dest.exists() and not args.force and not args.min_dpi:
             existing += 1
