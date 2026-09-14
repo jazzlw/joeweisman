@@ -113,6 +113,15 @@ AUTO = ["6x8", "8x10", "8x8", "5x7"]
 # the choice for those is a small card or no card, and a small card is better.
 LAST_RESORT = "4x6"
 
+# Paper chosen by hand, keyed on the first eight characters of the id. The
+# automatic choice goes on aspect ratio and then on resolution, which is the
+# right default and says nothing about whether a photograph deserves the wall.
+# A few do. Anything listed here skips the softness check too, on the grounds
+# that somebody looked at it and decided.
+PINNED = {
+    "5375ad2f": "8x12",   # a rescan with the resolution to carry it
+}
+
 
 def load_font(name: str, fallback: str, pt: float, dpi: int) -> ImageFont.FreeTypeFont:
     px = max(8, int(round(pt * dpi / 72)))
@@ -194,6 +203,9 @@ def pick_size(entry: dict, args) -> str | None:
     enough. A photograph too soft for every candidate gets the smallest, and is
     reported rather than quietly dropped.
     """
+    if entry["id"][:8] in PINNED:
+        return PINNED[entry["id"][:8]]
+
     w, h = entry.get("width"), entry.get("height")
     if not w or not h:
         return None
@@ -479,7 +491,7 @@ def main() -> int:
             continue
         canvas, eff = built
 
-        if args.min_dpi and eff < args.min_dpi:
+        if args.min_dpi and eff < args.min_dpi and e["id"][:8] not in PINNED:
             toosoft += 1
             line = f"{eff:6.0f} dpi  {(e.get('caption') or '')[:46]}"
             # Clear any card left from an earlier run at a looser setting.
