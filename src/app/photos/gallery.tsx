@@ -19,6 +19,8 @@ export type GalleryPhoto = GalleryImage & {
   id: string;
   submitter: string | null;
   year: number | null;
+  /** The year was worked out rather than known, so it shows as "~1971". */
+  yearApprox?: boolean;
   /** The rest of this stack, in order — empty for a photo that isn't one. */
   stack: GalleryImage[];
 };
@@ -90,11 +92,13 @@ function Caption({
   caption,
   submitter,
   year,
+  yearApprox,
   className,
 }: {
   caption: string | null;
   submitter: string | null;
   year: number | null;
+  yearApprox?: boolean;
   className: string;
 }) {
   const yr = yearWorthShowing(year, caption);
@@ -103,7 +107,12 @@ function Caption({
     <p className={className}>
       {caption && renderCaption(caption)}
       {caption && (submitter || yr) && " "}
-      {yr && <span className="photo-year">{yr}</span>}
+      {yr && (
+        <span className="photo-year">
+          {yearApprox ? "~" : ""}
+          {yr}
+        </span>
+      )}
       {yr && submitter && " "}
       {submitter && <span className="credit">&mdash; {submitter}</span>}
     </p>
@@ -212,7 +221,13 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
                 </span>
               )}
             </button>
-            <Caption caption={p.caption} submitter={p.submitter} year={p.year} className="gallery-caption" />
+            <Caption
+              caption={p.caption}
+              submitter={p.submitter}
+              year={p.year}
+              yearApprox={p.yearApprox}
+              className="gallery-caption"
+            />
           </li>
         ))}
       </ul>
@@ -286,7 +301,13 @@ export default function Gallery({ photos }: { photos: GalleryPhoto[] }) {
               </button>
             </div>
 
-            <Caption caption={frame.caption} submitter={current.submitter} year={current.year} className="lightbox-caption" />
+            <Caption
+              caption={frame.caption}
+              submitter={current.submitter}
+              year={current.year}
+              yearApprox={current.yearApprox}
+              className="lightbox-caption"
+            />
 
             <button type="button" className="lightbox-close btn-quiet" onClick={close}>
               Close

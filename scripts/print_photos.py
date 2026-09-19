@@ -186,6 +186,23 @@ def effective_dpi(img_w: int, img_h: int, paper: tuple[float, float], args, capt
 LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
 
 
+def year_line(entry: dict, caption: str) -> str:
+    """The year as it should appear under a photograph, or "" for none.
+
+    Suppressed when the caption already says it — most of them do, and "Joe in
+    Ashland, 2013" above a line reading "2013" is just clutter. Same rule as
+    yearWorthShowing() in the gallery.
+
+    A year the admin worked out rather than was told shows as "~1971", so it
+    does not sit there looking like one somebody actually remembers. See
+    db/015.
+    """
+    year = entry.get("taken_year")
+    if not year or str(year) in caption:
+        return ""
+    return f"~{year}" if entry.get("taken_source") == "guess" else str(year)
+
+
 def plain_caption(entry: dict) -> str:
     """The caption as it should read on paper.
 
@@ -255,12 +272,7 @@ def compose(img: Image.Image, entry: dict, args, W: int, H: int):
     # The year only. Who sent a photograph in is useful in the admin queue and
     # beside it in the gallery, but on a print somebody takes home it reads as a
     # byline on someone else's memory.
-    #
-    # Suppressed when the caption already says it — most of them do, and
-    # "Joe in Ashland, 2013" above a line reading "2013" is just clutter. Same
-    # rule as yearWorthShowing() in the gallery.
-    year = entry.get("taken_year")
-    credit = str(year) if year and str(year) not in caption else ""
+    credit = year_line(entry, caption)
 
     line_h = int(1.32 * caption_font.size)
     credit_h = int(1.5 * credit_font.size) if credit else 0
@@ -425,8 +437,7 @@ def compose_slide(img: Image.Image, entry: dict, W: int, H: int) -> Image.Image:
 
     caption = plain_caption(entry)
     lines = wrap(draw, caption, cap_font, int(W * 0.66)) if caption else []
-    year = entry.get("taken_year")
-    yr = str(year) if year and str(year) not in caption else ""
+    yr = year_line(entry, caption)
 
     line_h = int(cap_font.size * 1.34)
     yr_h = int(yr_font.size * 1.7) if yr else 0
@@ -703,7 +714,7 @@ def main() -> int:
         # Everything that decides what the card looks like. A change to any of
         # it is a card that has to be drawn again, whatever the file is called.
         src = ROOT / "media" / "archive" / e["archive_key"]
-        fp = json.dumps([plain_caption(e), e.get("taken_year"), size,
+        fp = json.dumps([plain_caption(e), year_line(e, plain_caption(e)), size,
                          e.get("rotation"), args.dpi,
                          src.stat().st_mtime_ns if src.exists() else None],
                         sort_keys=True)

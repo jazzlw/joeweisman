@@ -23,6 +23,12 @@ export type Photo = {
   submitter: string | null;
   created_at: Date;
   taken_year: number | null;
+  /**
+   * Where taken_year came from — see db/004 and db/015. Only 'guess' changes
+   * what is rendered: a year reasoned out from the frame shows as "~1971", so
+   * it doesn't sit on the page looking like one somebody actually remembers.
+   */
+  taken_source: "submitter" | "exif" | "admin" | "guess" | null;
   kind: PhotoKind;
   stack_prev_id: string | null;
   /** Degrees clockwise to turn it before showing. 0 for almost everything. */
@@ -66,8 +72,8 @@ export type GalleryEntry = Photo & { stack: Photo[] };
  */
 export async function getApprovedPhotos(kind: PhotoKind): Promise<GalleryEntry[]> {
   const rows = (await db()`
-    select id, storage_ref, caption, submitter, created_at, taken_year, kind, stack_prev_id,
-           rotation, width, height
+    select id, storage_ref, caption, submitter, created_at, taken_year, taken_source,
+           kind, stack_prev_id, rotation, width, height
     from photos
     where status = 'approved' and kind = ${kind}
     order by sort_order nulls last, created_at desc

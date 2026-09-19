@@ -29,7 +29,7 @@ const sql = neon(process.env.DATABASE_URL);
 // Only what is archived: the print tool reads originals from R2's pulled copy,
 // not the resized versions Cloudflare serves.
 const rows = await sql`
-  select id, archive_key, caption, taken_year, submitter, rotation, kind, width, height
+  select id, archive_key, caption, taken_year, taken_source, submitter, rotation, kind, width, height
   from photos
   where status = 'approved' and archive_key is not null
   order by created_at

@@ -77,6 +77,7 @@ export default async function ArtifactsPage() {
             caption: p.caption,
             submitter: p.submitter,
             year: p.taken_year,
+            yearApprox: p.taken_source === "guess",
             rotation: p.rotation,
             width: p.width,
             height: p.height,

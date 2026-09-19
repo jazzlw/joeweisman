@@ -14,6 +14,13 @@
  * known and collects what was decided, and correcting an existing year means
  * typing the right one in the guess column rather than editing in place.
  *
+ * A year that came from guess_year is recorded with taken_source 'guess' and
+ * renders everywhere as "~1971", because a year somebody worked out from who
+ * is in the frame should not sit on the page looking exactly like one somebody
+ * remembers. The exception is a row marked `certain` in the confidence column:
+ * two of these were read off a postmark and off a photograph's own pair, which
+ * is evidence rather than reasoning, and they go in as 'admin'.
+ *
  * Refuses anything that is not a plausible year. A typo here is silent — it
  * just moves a photograph to the wrong place in a sequence nobody is going to
  * audit frame by frame.
@@ -71,40 +78,47 @@ for (const needed of ["id", "year", "guess_year"]) {
 const col = (r, name) => (r[head.indexOf(name)] ?? "").trim();
 
 const THIS_YEAR = new Date().getFullYear();
+const sql = neon(process.env.DATABASE_URL);
 const current = new Map(
-  (await sqlAll()).map((r) => [r.id.slice(0, 8), r.taken_year]),
+  (await sql`select id, taken_year, taken_source from photos`)
+    .map((r) => [r.id.slice(0, 8), r]),
 );
-async function sqlAll() {
-  const sql = neon(process.env.DATABASE_URL);
-  return sql`select id, taken_year from photos`;
-}
 
 const changes = [], problems = [];
 for (const r of rows) {
   const id = col(r, "id");
-  const raw = col(r, "guess_year") || col(r, "year");
+  const guessed = col(r, "guess_year");
+  const raw = guessed || col(r, "year");
   if (!id || !raw) continue;
 
   if (!/^\d{4}$/.test(raw) || +raw < 1900 || +raw > THIS_YEAR) {
     problems.push(`${id}  "${raw}" is not a year between 1900 and ${THIS_YEAR}`);
     continue;
   }
-  if (!current.has(id)) { problems.push(`${id}  no such photograph`); continue; }
-  if (current.get(id) === +raw) continue;
-  changes.push({ id, from: current.get(id), to: +raw });
+  const was = current.get(id);
+  if (!was) { problems.push(`${id}  no such photograph`); continue; }
+
+  // Evidence goes in as admin; reasoning goes in as a guess and gets the tilde.
+  const source = guessed
+    ? (col(r, "confidence").toLowerCase() === "certain" ? "admin" : "guess")
+    : was.taken_source;
+  if (was.taken_year === +raw && was.taken_source === source) continue;
+  changes.push({ id, from: was.taken_year, to: +raw, source });
 }
 
 for (const p of problems) console.log(`  SKIPPED  ${p}`);
 for (const c of changes) {
-  console.log(`  ${c.id}  ${c.from ?? "(none)"} -> ${c.to}`);
+  const shown = c.source === "guess" ? `~${c.to}` : `${c.to}`;
+  console.log(`  ${c.id}  ${c.from ?? "(none)"} -> ${shown.padEnd(6)} ${c.source}`);
 }
-console.log(`\n  ${changes.length} change(s), ${problems.length} problem(s)`);
+const guesses = changes.filter((c) => c.source === "guess").length;
+console.log(`\n  ${changes.length} change(s), ${guesses} of them approximate, ${problems.length} problem(s)`);
 
 if (!apply) { console.log("  (dry run — pass --apply to write)"); process.exit(problems.length ? 1 : 0); }
 if (problems.length) { console.error("  Refusing to write while rows are unreadable."); process.exit(1); }
 
-const sql = neon(process.env.DATABASE_URL);
 for (const c of changes) {
-  await sql`update photos set taken_year = ${c.to} where id::text like ${c.id + "%"}`;
+  await sql`update photos set taken_year = ${c.to}, taken_source = ${c.source}
+            where id::text like ${c.id + "%"}`;
 }
 console.log(`  ${changes.length} updated. Next: npm run print:manifest`);
