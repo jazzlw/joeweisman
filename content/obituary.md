@@ -28,4 +28,4 @@ A caregiver and advocate, Joe would go out of his way to improve the lives of ot
 
 He hated designated holidays, but would generously give gifts that inspired him. He rejected his birthday, refused to consider the question of God as a question at all, and was stubborn as a mule.
 
-He is survived by his wife, Karen, and their two children Jazz (Tom), and Eben; his first wife, Judy, and their children Luke (Mary), and Clio; his sister Londa; his brother David (Jacki); his grandchildren Eleazar and Sylvester; and countless friends whose lives are richer due to who he was in the world.
+He is survived by his wife, Karen, and their two children Jazz (Tom), and Eben; his first wife, Judy (Pam), and their children Luke (Mary), and Clio; his sister Londa; his brother David (Jacki); his grandchildren Eleazar and Sylvester; and countless friends whose lives are richer due to who he was in the world.

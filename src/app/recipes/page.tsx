@@ -23,7 +23,7 @@ export default function RecipesPage() {
       <div className="prose">
         <p>
           Joe kept his recipes as plain text files, added to and revised over
-          about thirty years. There are {recipes.length} of them here, exactly as
+          about thirty years. There are {recipes.length}  of them here, exactly as
           he typed them &mdash; the annotations, the second thoughts, the notes
           about whose kitchen a dish came from.
         </p>
