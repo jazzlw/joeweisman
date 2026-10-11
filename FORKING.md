@@ -98,8 +98,11 @@ asking over guessing when something below is ambiguous for their situation.
    Safe to re-run at any time: each file in `db/` is applied once and
    skipped thereafter. Run it again whenever you pull new changes.
 
-4. **Personalize the content.** Everything below is safe to change and has
-   no effect on the invariants in `AGENTS.md`:
+4. **Personalize the content.** Claude, ask up front whether they want to keep
+   the recipes section and the artifacts gallery, rather than waiting for them
+   to notice the option further down this list — both are entirely optional
+   and only apply to some people's lives. Everything below is safe to change
+   and has no effect on the invariants in `AGENTS.md`:
    - `src/site.config.ts` — `SITE_NAME` and `SITE_DESCRIPTION` (used in the
      page title and social-share previews).
    - `content/obituary.md` — the home page.
